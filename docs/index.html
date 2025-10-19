@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>aMAGIgoe System Dashboard</title>
+    <title>MAGI Fusion System Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -94,6 +94,7 @@
             border-radius: 15px;
             padding: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
         }
         
         .results h2 {
@@ -105,7 +106,7 @@
         
         .log-entry {
             border-left: 4px solid #667eea;
-            padding: 15px;
+            padding: 20px;
             margin-bottom: 20px;
             background: #f8f9fa;
             border-radius: 5px;
@@ -114,21 +115,31 @@
         .log-entry .timestamp {
             color: #666;
             font-size: 0.85em;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            font-family: monospace;
         }
         
         .log-entry .query {
             font-weight: bold;
             color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .log-entry .response {
+            color: #444;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            font-size: 0.95em;
         }
         
         .consensus-badge {
             display: inline-block;
-            padding: 3px 10px;
+            padding: 4px 12px;
             border-radius: 12px;
             font-size: 0.8em;
-            margin-top: 5px;
+            margin-top: 10px;
+            font-weight: bold;
         }
         
         .consensus-badge.success {
@@ -141,18 +152,45 @@
             color: white;
         }
         
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #ef4444;
+        }
+        
         .footer {
             text-align: center;
             color: white;
             margin-top: 40px;
             opacity: 0.8;
         }
+        
+        .footer a {
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+        
+        .footer a:hover {
+            opacity: 0.7;
+        }
+        
+        .magi-logo {
+            font-size: 1.2em;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🤖 aMAGIgoe System Dashboard</h1>
+            <h1><span class="magi-logo">🤖</span>a MAGI goe System</h1>
             <p>Multi-AI Consensus Analysis Dashboard</p>
         </div>
         
@@ -179,44 +217,156 @@
         <div class="results">
             <h2>Recent Fusion Results</h2>
             <div id="logEntries">
-                <p style="color: #666; text-align: center; padding: 20px;">
-                    Loading results... または
-                    <a href="https://github.com/KG-NINJA/aMAGIgoesystem/tree/main/results" 
-                       style="color: #667eea;">View on GitHub</a>
-                </p>
+                <div class="loading">
+                    <p>📡 Loading results from GitHub...</p>
+                </div>
             </div>
         </div>
         
         <div class="footer">
             <p>Powered by OpenAI, Anthropic, and Google AI</p>
             <p style="margin-top: 10px;">
-                <a href="https://github.com/KG-NINJA/aMAGIgoesystem" 
-                   style="color: white; text-decoration: none;">
-                    View on GitHub →
-                </a>
+                <a href="https://github.com/KG-NINJA/aMAGIgoesystem">View on GitHub →</a>
             </p>
         </div>
     </div>
     
     <script>
-        // GitHub Pages でマークダウンログを読み込んで表示する
-        // 実際の実装では consensus_log.md を fetch して解析
         async function loadResults() {
+            const logEntriesDiv = document.getElementById('logEntries');
+            
             try {
-                // この部分は実際のファイルパスに合わせて調整
-                const response = await fetch('../results/consensus_log.md');
-                if (response.ok) {
-                    const text = await response.text();
-                    // パース処理をここに実装
-                    console.log('Results loaded:', text);
+                // GitHub の raw コンテンツから consensus_log.md を取得
+                const response = await fetch('https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/consensus_log.md');
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load results');
                 }
-            } catch (e) {
-                console.log('Could not load results:', e);
+                
+                const text = await response.text();
+                
+                if (!text.trim()) {
+                    logEntriesDiv.innerHTML = `
+                        <div class="error">
+                            <p>No results found yet.</p>
+                            <p style="margin-top: 10px;">
+                                <a href="https://github.com/KG-NINJA/aMAGIgoesystem/actions" 
+                                   style="color: #667eea;">Run MAGI Fusion on GitHub Actions →</a>
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // マークダウンをパースして表示
+                const entries = parseConsensusLog(text);
+                displayEntries(entries);
+                
+            } catch (error) {
+                console.error('Error loading results:', error);
+                logEntriesDiv.innerHTML = `
+                    <div class="error">
+                        <p>⚠️ Could not load results</p>
+                        <p style="margin-top: 10px; font-size: 0.9em;">
+                            View results directly: 
+                            <a href="https://github.com/KG-NINJA/aMAGIgoesystem/blob/main/results/consensus_log.md" 
+                               style="color: #667eea;">consensus_log.md</a>
+                        </p>
+                    </div>
+                `;
             }
         }
         
+        function parseConsensusLog(text) {
+            const entries = [];
+            const sections = text.split(/(?=\n## )/);
+            
+            for (const section of sections) {
+                if (!section.trim()) continue;
+                
+                const lines = section.split('\n');
+                const entry = {
+                    timestamp: '',
+                    query: '',
+                    response: '',
+                    isConsensus: false
+                };
+                
+                let inResponse = false;
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    
+                    if (line.startsWith('## ')) {
+                        entry.timestamp = line.replace('## ', '').trim();
+                    } else if (line.startsWith('**Query:**') || line.startsWith('**Q:**')) {
+                        entry.query = line.replace(/\*\*Query:\*\*|\*\*Q:\*\*/g, '').trim();
+                    } else if (line.includes('Consensus reached')) {
+                        entry.isConsensus = true;
+                        inResponse = true;
+                        entry.response += line + '\n';
+                    } else if (line.includes('Consensus failed')) {
+                        entry.isConsensus = false;
+                        inResponse = true;
+                        entry.response += line + '\n';
+                    } else if (inResponse && line.trim() !== '---') {
+                        entry.response += line + '\n';
+                    }
+                }
+                
+                if (entry.timestamp && entry.query) {
+                    entries.push(entry);
+                }
+            }
+            
+            return entries.reverse(); // 最新順
+        }
+        
+        function displayEntries(entries) {
+            const logEntriesDiv = document.getElementById('logEntries');
+            
+            if (entries.length === 0) {
+                logEntriesDiv.innerHTML = `
+                    <div class="error">
+                        <p>No results found yet.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 最新5件のみ表示
+            const recentEntries = entries.slice(0, 5);
+            
+            logEntriesDiv.innerHTML = recentEntries.map(entry => `
+                <div class="log-entry">
+                    <div class="timestamp">🕐 ${entry.timestamp}</div>
+                    <div class="query">❓ ${entry.query}</div>
+                    <div class="response">${escapeHtml(entry.response.substring(0, 500))}${entry.response.length > 500 ? '...' : ''}</div>
+                    <span class="consensus-badge ${entry.isConsensus ? 'success' : 'failed'}">
+                        ${entry.isConsensus ? '✓ Consensus' : '✗ Diverged'}
+                    </span>
+                </div>
+            `).join('');
+            
+            if (entries.length > 5) {
+                logEntriesDiv.innerHTML += `
+                    <p style="text-align: center; margin-top: 20px; color: #666;">
+                        Showing ${recentEntries.length} of ${entries.length} results. 
+                        <a href="https://github.com/KG-NINJA/aMAGIgoesystem/blob/main/results/consensus_log.md" 
+                           style="color: #667eea;">View all →</a>
+                    </p>
+                `;
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
         // ページ読み込み時に実行
-        // loadResults();
+        loadResults();
     </script>
 </body>
 </html>
