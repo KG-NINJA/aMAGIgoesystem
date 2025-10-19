@@ -6,7 +6,7 @@ on:
       query:
         description: 'Query for MAGI systems'
         required: true
-        default: 'AGIの出現はいつ頃になりそうか?'
+        default: 'What is AGI?'
   schedule:
     - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
 
@@ -29,6 +29,10 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
+    
+    - name: Create results directory
+      run: |
+        mkdir -p results
     
     - name: Run MAGI Fusion
       env:
