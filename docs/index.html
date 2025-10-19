@@ -113,7 +113,32 @@
             padding: 20px;
             background: rgba(0, 0, 0, 0.8);
             position: relative;
-            transition: all 0.3s;
+            transition: all 0.5s;
+        }
+        
+        .magi-unit.deliberating {
+            border-color: #ffff00;
+            animation: pulse 0.5s ease-in-out infinite;
+        }
+        
+        .magi-unit.approved {
+            border-color: #00ff00;
+            background: rgba(0, 255, 0, 0.15);
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.6);
+        }
+        
+        .magi-unit.rejected {
+            border-color: #ff0000;
+            background: rgba(255, 0, 0, 0.1);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { 
+                box-shadow: 0 0 10px rgba(255, 255, 0, 0.3);
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(255, 255, 0, 0.8);
+            }
         }
         
         .magi-unit:hover {
@@ -122,13 +147,38 @@
         }
         
         .magi-unit::after {
-            content: '承認';
+            content: '待機';
             position: absolute;
             top: 10px;
             right: 10px;
             font-size: 2em;
             opacity: 0.3;
+            color: #666;
+            transition: all 0.5s;
+        }
+        
+        .magi-unit.deliberating::after {
+            content: '審議';
+            color: #ffff00;
+            opacity: 1;
+            animation: blink 0.5s ease-in-out infinite;
+        }
+        
+        .magi-unit.approved::after {
+            content: '承認';
             color: #00ff00;
+            opacity: 1;
+        }
+        
+        .magi-unit.rejected::after {
+            content: '否認';
+            color: #ff0000;
+            opacity: 1;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
         }
         
         .magi-name {
@@ -161,6 +211,7 @@
             margin-top: 10px;
             font-weight: bold;
             letter-spacing: 2px;
+            transition: all 0.5s;
         }
         
         .status.operational {
@@ -173,6 +224,18 @@
             background: rgba(255, 102, 0, 0.2);
             border: 2px solid #ff6600;
             color: #ff6600;
+        }
+        
+        .status.deliberating {
+            background: rgba(255, 255, 0, 0.2);
+            border: 2px solid #ffff00;
+            color: #ffff00;
+            animation: statusBlink 0.5s ease-in-out infinite;
+        }
+        
+        @keyframes statusBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
         
         .results-panel {
@@ -304,6 +367,97 @@
                 letter-spacing: 4px;
             }
         }
+        
+        /* モーダルスタイル */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal.show {
+            display: block;
+        }
+        
+        .modal-content {
+            position: relative;
+            margin: 2% auto;
+            padding: 30px;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 3px solid #00ff00;
+            background: #000;
+            box-shadow: 0 0 50px rgba(0, 255, 0, 0.5);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #00ff00;
+        }
+        
+        .modal-title {
+            font-size: 1.5em;
+            color: #00ff00;
+            letter-spacing: 3px;
+        }
+        
+        .close-btn {
+            color: #ff0000;
+            font-size: 2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid #ff0000;
+            padding: 5px 15px;
+            background: rgba(255, 0, 0, 0.1);
+        }
+        
+        .close-btn:hover {
+            background: rgba(255, 0, 0, 0.3);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+        }
+        
+        .modal-body {
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .modal-content::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        .modal-content::-webkit-scrollbar-track {
+            background: #111;
+        }
+        
+        .modal-content::-webkit-scrollbar-thumb {
+            background: #00ff00;
+            border: 1px solid #000;
+        }
+        
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: #00ccff;
+        }
     </style>
 </head>
 <body>
@@ -322,7 +476,7 @@
         </div>
         
         <div class="systems-grid">
-            <div class="magi-unit">
+            <div class="magi-unit" id="balthasar">
                 <div class="magi-name">BALTHASAR-2</div>
                 <div class="magi-role">Logic System</div>
                 <div class="magi-model">OpenAI GPT-4o</div>
@@ -330,10 +484,10 @@
                     Layer3: ConnectionContact<br>
                     0930
                 </div>
-                <span class="status operational">OPERATIONAL</span>
+                <span class="status operational" id="balthasar-status">OPERATIONAL</span>
             </div>
             
-            <div class="magi-unit">
+            <div class="magi-unit" id="casper">
                 <div class="magi-name">CASPER-3</div>
                 <div class="magi-role">Ethics System</div>
                 <div class="magi-model">Anthropic Claude Sonnet 4.5</div>
@@ -341,10 +495,10 @@
                     Layer2: DataLink<br>
                     0928-LPAD
                 </div>
-                <span class="status degraded">LIMITED</span>
+                <span class="status degraded" id="casper-status">LIMITED</span>
             </div>
             
-            <div class="magi-unit">
+            <div class="magi-unit" id="melchior">
                 <div class="magi-name">MELCHIOR-1</div>
                 <div class="magi-role">Intuition System</div>
                 <div class="magi-model">Google Gemini 2.0</div>
@@ -352,7 +506,7 @@
                     Layer1: ProtocolConnector<br>
                     I.225-BasicInterface
                 </div>
-                <span class="status operational">OPERATIONAL</span>
+                <span class="status operational" id="melchior-status">OPERATIONAL</span>
             </div>
         </div>
         
@@ -374,6 +528,19 @@
             </div>
             <div style="margin-top: 10px; color: #444;">
                 Powered by OpenAI | Anthropic | Google AI
+            </div>
+        </div>
+    </div>
+    
+    <!-- モーダルウィンドウ -->
+    <div id="logModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">RAW CONSENSUS LOG DATA</div>
+                <span class="close-btn" onclick="closeModal()">✕ CLOSE</span>
+            </div>
+            <div class="modal-body" id="modalLogContent">
+                Loading...
             </div>
         </div>
     </div>
@@ -413,13 +580,60 @@
                     <div class="error">
                         ⚠ CONNECTION ERROR: UNABLE TO RETRIEVE MAGI DATA<br>
                         <div style="margin-top: 20px; font-size: 0.9em;">
-                            <a href="https://github.com/KG-NINJA/aMAGIgoesystem/blob/main/results/consensus_log.md" 
-                               style="color: #00ccff;">► VIEW RAW CONSENSUS LOG</a>
+                            <a href="#" onclick="openModal(); return false;" 
+                               style="color: #00ccff; cursor: pointer;">► VIEW RAW CONSENSUS LOG</a>
                         </div>
                     </div>
                 `;
+                // エラーでもモーダル用にデータを保存
+                window.rawLogData = 'Error: Could not load log data';
             }
         }
+        
+        // モーダル関連の関数
+        function openModal() {
+            const modal = document.getElementById('logModal');
+            const modalContent = document.getElementById('modalLogContent');
+            
+            modal.classList.add('show');
+            
+            // 生データを表示
+            if (window.rawLogData) {
+                modalContent.textContent = window.rawLogData;
+            } else {
+                modalContent.textContent = 'Loading raw log data...';
+                // データを再取得
+                fetch('https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/consensus_log.md')
+                    .then(response => response.text())
+                    .then(text => {
+                        window.rawLogData = text;
+                        modalContent.textContent = text;
+                    })
+                    .catch(err => {
+                        modalContent.textContent = 'Error loading log data: ' + err.message;
+                    });
+            }
+        }
+        
+        function closeModal() {
+            const modal = document.getElementById('logModal');
+            modal.classList.remove('show');
+        }
+        
+        // モーダル外クリックで閉じる
+        window.onclick = function(event) {
+            const modal = document.getElementById('logModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+        
+        // ESCキーで閉じる
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
         
         function parseConsensusLog(text) {
             const entries = [];
@@ -511,6 +725,73 @@
         }
         
         loadResults();
+        
+        // MAGIシステムの議論アニメーション
+        function startDeliberation() {
+            const systems = [
+                { id: 'balthasar', delay: 0 },
+                { id: 'melchior', delay: 800 },
+                { id: 'casper', delay: 1600 }
+            ];
+            
+            systems.forEach(sys => {
+                setTimeout(() => {
+                    const unit = document.getElementById(sys.id);
+                    const status = document.getElementById(`${sys.id}-status`);
+                    
+                    // 審議中状態
+                    unit.classList.add('deliberating');
+                    status.textContent = 'DELIBERATING';
+                    status.className = 'status deliberating';
+                    
+                    // 1.5秒後に承認
+                    setTimeout(() => {
+                        unit.classList.remove('deliberating');
+                        unit.classList.add('approved');
+                        status.textContent = 'APPROVED';
+                        status.className = 'status operational';
+                    }, 1500);
+                }, sys.delay);
+            });
+            
+            // 全承認後のメッセージ
+            setTimeout(() => {
+                const header = document.querySelector('.status-bar');
+                header.textContent = 'RESULT OF THE DELIBERATION NOTION: ALL APPROVED';
+                header.style.color = '#00ff00';
+                header.style.textShadow = '0 0 10px #00ff00';
+            }, 4000);
+        }
+        
+        // ページ読み込み3秒後に自動開始
+        setTimeout(startDeliberation, 3000);
+        
+        // クリックで再実行
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('magi-unit') || e.target.closest('.magi-unit')) {
+                // 状態をリセット
+                ['balthasar', 'casper', 'melchior'].forEach(id => {
+                    const unit = document.getElementById(id);
+                    const status = document.getElementById(`${id}-status`);
+                    unit.className = 'magi-unit';
+                    if (id === 'casper') {
+                        status.textContent = 'LIMITED';
+                        status.className = 'status degraded';
+                    } else {
+                        status.textContent = 'OPERATIONAL';
+                        status.className = 'status operational';
+                    }
+                });
+                
+                const header = document.querySelector('.status-bar');
+                header.textContent = 'DIRECT LINK CONNECTION: MAGI_01';
+                header.style.color = '#ff6600';
+                header.style.textShadow = 'none';
+                
+                // アニメーション再開
+                setTimeout(startDeliberation, 500);
+            }
+        });
     </script>
 </body>
 </html>
