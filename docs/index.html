@@ -861,79 +861,181 @@
         function displayMultistageResults(logText, jsonData) {
             const multistageDiv = document.getElementById('multistageEntries');
             
-            if (jsonData) {
-                // JSON データから詳細表示
-                const similarity = jsonData.similarity_analysis || {};
+            // マークダウンからデータを抽出
+            const sections = logText.split(/(?=\n## )/);
+            const entries = [];
+            
+            for (const section of sections) {
+                if (!section.trim()) continue;
+                
+                const lines = section.split('\n');
+                const entry = {
+                    timestamp: '',
+                    query: '',
+                    stage1: { logic: '', ethics: '', intuition: '' },
+                    stage2: { logic: '', ethics: '', intuition: '' },
+                    stage3: ''
+                };
+                
+                let currentStage = null;
+                let currentSystem = null;
+                let content = [];
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    
+                    if (line.startsWith('## ')) {
+                        entry.timestamp = line.replace('## ', '').trim();
+                    } else if (line.startsWith('**Query:**')) {
+                        entry.query = line.replace('**Query:**', '').trim();
+                    } else if (line.includes('Stage 1: Primary Debate')) {
+                        currentStage = 'stage1';
+                    } else if (line.includes('Stage 2: Rebuttal Round')) {
+                        currentStage = 'stage2';
+                    } else if (line.includes('Stage 3: Meta-Consensus')) {
+                        currentStage = 'stage3';
+                        currentSystem = 'meta';
+                        content = [];
+                    } else if (line.startsWith('**LOGIC:**')) {
+                        if (currentStage && currentStage !== 'stage3') {
+                            currentSystem = 'logic';
+                            content = [];
+                        }
+                    } else if (line.startsWith('**ETHICS:**')) {
+                        if (currentStage && currentStage !== 'stage3') {
+                            currentSystem = 'ethics';
+                            content = [];
+                        }
+                    } else if (line.startsWith('**INTUITION:**')) {
+                        if (currentStage && currentStage !== 'stage3') {
+                            currentSystem = 'intuition';
+                            content = [];
+                        }
+                    } else if (line.startsWith('**META-CONSENSUS')) {
+                        currentStage = 'stage3';
+                        currentSystem = 'meta';
+                        content = [];
+                    } else if (currentStage && currentSystem) {
+                        // 次のセクションの開始を検出
+                        if (line.startsWith('**') && line.endsWith(':**') && !line.includes('Query')) {
+                            // 前のシステムの内容を保存
+                            if (content.length > 0) {
+                                const text = content.join('\n').trim();
+                                if (currentStage === 'stage1' || currentStage === 'stage2') {
+                                    entry[currentStage][currentSystem] = text;
+                                } else if (currentStage === 'stage3') {
+                                    entry.stage3 = text;
+                                }
+                            }
+                            content = [];
+                            
+                            // 新しいシステムを検出
+                            if (line.startsWith('**LOGIC:**')) currentSystem = 'logic';
+                            else if (line.startsWith('**ETHICS:**')) currentSystem = 'ethics';
+                            else if (line.startsWith('**INTUITION:**')) currentSystem = 'intuition';
+                        } else {
+                            content.push(line);
+                        }
+                    }
+                }
+                
+                // 最後の内容を保存
+                if (content.length > 0 && currentStage && currentSystem) {
+                    const text = content.join('\n').trim();
+                    if (currentStage === 'stage3') {
+                        entry.stage3 = text;
+                    } else if (currentSystem) {
+                        entry[currentStage][currentSystem] = text;
+                    }
+                }
+                
+                if (entry.timestamp && entry.query) {
+                    entries.push(entry);
+                }
+            }
+            
+            if (entries.length === 0) {
+                multistageDiv.innerHTML = `
+                    <div class="error">
+                        ✗ NO VALID MULTI-STAGE DEBATE DATA
+                    </div>
+                `;
+                return;
+            }
+            
+            // 最新のエントリーを表示
+            const entry = entries[entries.length - 1];
+            
+            // JSONデータから収束分析を取得
+            let convergenceHtml = '';
+            if (jsonData && jsonData.similarity_analysis) {
+                const similarity = jsonData.similarity_analysis;
                 const convergence = similarity.convergence || 0;
                 const convergenceText = convergence > 0 ? 
                     `↑ INCREASED CONSENSUS (+${convergence.toFixed(3)})` : 
-                    `↓ DECREASED CONSENSUS (${convergence.toFixed(3)})`;
-                const convergenceColor = convergence > 0 ? '#00ff00' : '#ff6600';
+                    convergence < 0 ?
+                    `↓ DECREASED CONSENSUS (${convergence.toFixed(3)})` :
+                    `→ NO CHANGE (${convergence.toFixed(3)})`;
+                const convergenceColor = convergence > 0 ? '#00ff00' : convergence < 0 ? '#ff6600' : '#00ccff';
                 
-                multistageDiv.innerHTML = `
-                    <div class="log-entry">
-                        <div class="timestamp">🕐 ${jsonData.timestamp || 'Unknown'}</div>
-                        <div class="query">❓ ${escapeHtml(jsonData.query || 'No query')}</div>
-                        
-                        <div style="margin-top: 20px;">
-                            <span class="stage-indicator stage-1">STAGE 1: PRIMARY DEBATE</span>
-                            <div style="margin-left: 20px; margin-top: 10px; color: #00ccff;">
-                                Independent perspectives from each MAGI system
-                            </div>
-                        </div>
-                        
-                        <div style="margin-top: 15px;">
-                            <span class="stage-indicator stage-2">STAGE 2: REBUTTAL ROUND</span>
-                            <div style="margin-left: 20px; margin-top: 10px; color: #ffff00;">
-                                Re-evaluation after considering other viewpoints
-                            </div>
-                        </div>
-                        
-                        <div style="margin-top: 15px;">
-                            <span class="stage-indicator stage-3">STAGE 3: META-CONSENSUS</span>
-                            <div class="response" style="margin-left: 20px; margin-top: 10px;">
-${escapeHtml(jsonData.stage3_meta_consensus || 'No consensus data').substring(0, 800)}${jsonData.stage3_meta_consensus && jsonData.stage3_meta_consensus.length > 800 ? '...' : ''}
-                            </div>
-                        </div>
-                        
-                        ${similarity.round1 !== undefined && similarity.round2 !== undefined ? `
-                        <div class="convergence-info">
-                            <div style="font-weight: bold; margin-bottom: 5px;">📊 CONVERGENCE ANALYSIS</div>
-                            <div>Round 1 Similarity: ${similarity.round1.toFixed(3)}</div>
-                            <div>Round 2 Similarity: ${similarity.round2.toFixed(3)}</div>
-                            <div style="color: ${convergenceColor}; font-weight: bold; margin-top: 5px;">
-                                ${convergenceText}
-                            </div>
-                        </div>
-                        ` : ''}
-                        
-                        <div style="text-align: center; margin-top: 20px;">
-                            <a href="#" onclick="openMultistageModal(); return false;" 
-                               style="color: #00ccff; cursor: pointer; letter-spacing: 2px;">
-                               ► VIEW FULL DEBATE TRANSCRIPT
-                            </a>
+                convergenceHtml = `
+                    <div class="convergence-info">
+                        <div style="font-weight: bold; margin-bottom: 5px;">📊 CONVERGENCE ANALYSIS</div>
+                        <div>Round 1 Similarity: ${(similarity.round1 || 0).toFixed(3)}</div>
+                        <div>Round 2 Similarity: ${(similarity.round2 || 0).toFixed(3)}</div>
+                        <div style="color: ${convergenceColor}; font-weight: bold; margin-top: 5px;">
+                            ${convergenceText}
                         </div>
                     </div>
                 `;
-                
-                // モーダル用にデータを保存
-                window.multistageRawData = logText;
-                
-            } else {
-                // ログテキストのみの場合
-                multistageDiv.innerHTML = `
-                    <div class="log-entry">
-                        <div class="response">${escapeHtml(logText.substring(0, 1000))}...</div>
-                        <div style="text-align: center; margin-top: 20px;">
-                            <a href="#" onclick="openMultistageModal(); return false;" 
-                               style="color: #00ccff; cursor: pointer;">
-                               ► VIEW FULL LOG
-                            </a>
-                        </div>
-                    </div>
-                `;
-                window.multistageRawData = logText;
             }
+            
+            multistageDiv.innerHTML = `
+                <div class="log-entry">
+                    <div class="timestamp">🕐 ${entry.timestamp}</div>
+                    <div class="query">❓ ${escapeHtml(entry.query)}</div>
+                    
+                    <div style="margin-top: 20px;">
+                        <span class="stage-indicator stage-1">STAGE 1: PRIMARY DEBATE</span>
+                        <div style="margin-left: 20px; margin-top: 10px; font-size: 0.85em;">
+                            <div style="color: #00ccff; margin-bottom: 5px;">▸ BALTHASAR-2 (Logic)</div>
+                            <div style="color: #888; margin-bottom: 15px;">${escapeHtml(entry.stage1.logic.substring(0, 200))}...</div>
+                            
+                            <div style="color: #00ccff; margin-bottom: 5px;">▸ CASPER-3 (Ethics)</div>
+                            <div style="color: #888; margin-bottom: 15px;">${escapeHtml(entry.stage1.ethics.substring(0, 200))}...</div>
+                            
+                            <div style="color: #00ccff; margin-bottom: 5px;">▸ MELCHIOR-1 (Intuition)</div>
+                            <div style="color: #888; margin-bottom: 15px;">${escapeHtml(entry.stage1.intuition.substring(0, 200))}...</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <span class="stage-indicator stage-2">STAGE 2: REBUTTAL ROUND</span>
+                        <div style="margin-left: 20px; margin-top: 10px; color: #ffff00; font-size: 0.85em;">
+                            Re-evaluation after considering other viewpoints
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <span class="stage-indicator stage-3">STAGE 3: META-CONSENSUS</span>
+                        <div class="response" style="margin-left: 20px; margin-top: 10px; font-size: 0.85em;">
+${escapeHtml(entry.stage3.substring(0, 1000))}${entry.stage3.length > 1000 ? '\n...[TRUNCATED]' : ''}
+                        </div>
+                    </div>
+                    
+                    ${convergenceHtml}
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <a href="#" onclick="openMultistageModal(); return false;" 
+                           style="color: #00ccff; cursor: pointer; letter-spacing: 2px;">
+                           ► VIEW FULL 3-STAGE DEBATE TRANSCRIPT
+                        </a>
+                    </div>
+                </div>
+            `;
+            
+            // モーダル用にデータを保存
+            window.multistageRawData = logText;
         }
         
         function openMultistageModal() {
