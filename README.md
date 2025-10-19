@@ -1,5 +1,4 @@
-# aMAGIgoesystem
-# 🧠 MAGI Fusion Protocol  
+# 🧠 aMAGIgoesystem  
 三系統AIによる協議・合意形成システム（AIEO対応）
 
 ---
