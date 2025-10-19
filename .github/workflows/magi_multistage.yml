@@ -1,0 +1,83 @@
+name: MAGI Multi-Stage Deliberation
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: 'Deep query for multi-stage debate'
+        required: true
+        default: 'Should AI systems have rights?'
+  schedule:
+    - cron: '0 12 * * 0'  # Weekly on Sunday at noon UTC
+
+jobs:
+  magi-multistage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Create results directory
+      run: |
+        mkdir -p results
+    
+    - name: Run Multi-Stage MAGI Debate
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      run: |
+        python scripts/magi_debate_multistage.py "${{ github.event.inputs.query || 'Should AI systems have rights?' }}"
+    
+    - name: Display Convergence Analysis
+      if: always()
+      run: |
+        echo "=== Multi-Stage Debate Analysis ==="
+        if [ -f results/multistage_debate.json ]; then
+          echo "✓ Multi-stage debate completed"
+          echo ""
+          echo "Convergence analysis:"
+          cat results/multistage_debate.json | python -m json.tool | grep -A 5 '"similarity_analysis"' || true
+        else
+          echo "✗ No results file found"
+        fi
+    
+    - name: Commit and Push Results
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git pull --rebase origin main || true
+        git add results/
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "🧠 MAGI Multi-Stage Debate: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" \
+                     -m "Query: ${{ github.event.inputs.query || 'Should AI systems have rights?' }}" \
+                     -m "3-stage deliberation with rebuttal round completed"
+          git push
+        fi
+      continue-on-error: false
+    
+    - name: Upload Results as Artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: magi-multistage-${{ github.run_number }}
+        path: results/
+        retention-days: 90
