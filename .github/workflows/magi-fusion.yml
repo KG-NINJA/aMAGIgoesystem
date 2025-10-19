@@ -6,19 +6,22 @@ on:
       query:
         description: 'Query for MAGI systems'
         required: true
-        default: 'What is consciousness?'
+        default: 'What is AGI?'
   schedule:
     - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
 
 jobs:
   magi-consensus:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 結果をコミット・プッシュするために必要
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0  # 完全な履歴を取得
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -55,25 +58,24 @@ jobs:
           echo "✗ No results file found"
         fi
     
-    - name: Configure Git
-      run: |
-        git config user.name "magi-system"
-        git config user.email "magi-system@users.noreply.github.com"
-    
     - name: Commit and Push Results
       run: |
-        git pull origin main
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git pull --rebase origin main || true
         git add results/
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
-          git commit -m "🤖 MAGI Fusion Results: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-          git push origin main
+          git commit -m "🤖 MAGI Fusion Results: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" \
+                     -m "Query: ${{ github.event.inputs.query || 'What is the meaning of life?' }}"
+          git push
         fi
-      continue-on-error: true
+      continue-on-error: false
     
     - name: Upload Results as Artifact
       uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: magi-results-${{ github.run_number }}
         path: results/
