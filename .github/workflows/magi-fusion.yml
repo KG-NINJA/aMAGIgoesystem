@@ -1,0 +1,43 @@
+name: MAGI Fusion Protocol (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      question:
+        description: "質問内容を入力してください"
+        required: true
+        default: "What is consciousness?"
+
+permissions:
+  contents: write
+
+jobs:
+  magi-fusion:
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run MAGI Fusion Protocol
+        run: python scripts/magi_fusion.py "${{ github.event.inputs.question }}"
+
+      - name: Commit and push results
+        run: |
+          git config user.name "magi-system"
+          git config user.email "actions@github.com"
+          git add fusion_results.json consensus_log.md
+          git commit -m "MAGI fusion result: ${{ github.event.inputs.question }}"
+          git push
