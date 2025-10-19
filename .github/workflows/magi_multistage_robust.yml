@@ -1,0 +1,70 @@
+name: MAGI Multi-Stage (Robust)
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: 'Deep query for multi-stage debate'
+        required: true
+        default: 'Should AI systems have rights?'
+
+jobs:
+  magi-multistage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Create results directory
+      run: |
+        mkdir -p results
+    
+    - name: Run Multi-Stage MAGI Debate
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      run: |
+        python scripts/magi_debate_multistage.py "${{ github.event.inputs.query || 'Should AI systems have rights?' }}"
+    
+    - name: Display Convergence Analysis
+      if: always()
+      run: |
+        echo "=== Multi-Stage Debate Analysis ==="
+        if [ -f results/multistage_debate.json ]; then
+          echo "✓ Multi-stage debate completed"
+          echo ""
+          cat results/multistage_debate.json | python -m json.tool | grep -A 5 '"similarity_analysis"' || true
+        fi
+    
+    - name: Commit and Push with Git Auto Commit
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "🧠 MAGI Multi-Stage Debate: ${{ github.event.inputs.query }}"
+        file_pattern: 'results/*'
+        commit_user_name: github-actions[bot]
+        commit_user_email: github-actions[bot]@users.noreply.github.com
+        commit_author: github-actions[bot] <github-actions[bot]@users.noreply.github.com>
+    
+    - name: Upload Results as Artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: magi-multistage-${{ github.run_number }}
+        path: results/
+        retention-days: 90
