@@ -1,4 +1,4 @@
-# 🤖 aMAGIgoesystem
+# 🤖 MAGI Fusion System
 
 Multi-AI Consensus Analysis using GPT-4o, Claude Sonnet 4.5, and Gemini 2.0
 
@@ -14,7 +14,12 @@ MAGI (Multi-Agent Generative Intelligence) システムは、複数の最先端A
 ## Features
 
 - 🔄 複数AIモデルの並列クエリ
+- 🧠 **多段階ディベートシステム（NEW!）**
+  - **Stage 1: Primary Debate** - 各AIが独立に分析
+  - **Stage 2: Rebuttal Round** - 他のAIの視点を踏まえて再評価
+  - **Stage 3: Meta-Consensus** - 統合的な最終判断
 - 📊 セマンティック類似度によるコンセンサス分析
+- 📈 収束率測定（ラウンド間での意見の収束度）
 - 🛡️ 強力なエラーハンドリング（1つのAPIが失敗しても継続）
 - 📝 結果の自動保存（JSON + Markdown）
 - 🤖 GitHub Actions による自動実行
@@ -42,10 +47,38 @@ export GOOGLE_API_KEY="AI..."
 
 ## Usage
 
-### コマンドライン実行
+### シンプルモード（単一ラウンド）
 
 ```bash
 python scripts/magi_fusion.py "Your question here"
+```
+
+### 多段階ディベートモード（推奨）
+
+```bash
+python scripts/magi_debate_multistage.py "Should AI systems have rights?"
+```
+
+**多段階モードの構造:**
+
+```
+Stage 1: Primary Debate (独立思考)
+  ├─ BALTHASAR-2 (Logic): 論理的分析
+  ├─ CASPER-3 (Ethics): 倫理的評価  
+  └─ MELCHIOR-1 (Intuition): 直感的洞察
+
+       ↓ 各AIが他の回答を参照
+
+Stage 2: Rebuttal Round (協調的再思考)
+  ├─ 他の視点を考慮した再評価
+  ├─ 欠陥の修正 or 立場の防御
+  └─ 統合的な第2意見を生成
+
+       ↓ メタAIによる統合
+
+Stage 3: Meta-Consensus (最終統合)
+  └─ 収束点と有益な相違点を特定
+  └─ バランスの取れた最終推奨
 ```
 
 ### GitHub Actions で実行
