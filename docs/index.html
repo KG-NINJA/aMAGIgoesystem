@@ -245,6 +245,44 @@
             margin-bottom: 20px;
         }
         
+        .panel-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+        }
+        
+        .tab-button {
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #666;
+            color: #666;
+            cursor: pointer;
+            font-size: 1em;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+        }
+        
+        .tab-button:hover {
+            border-color: #00ccff;
+            color: #00ccff;
+        }
+        
+        .tab-button.active {
+            background: rgba(255, 102, 0, 0.2);
+            border-color: #ff6600;
+            color: #ff6600;
+            box-shadow: 0 0 10px rgba(255, 102, 0, 0.5);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
         .panel-header {
             font-size: 1.5em;
             color: #ff6600;
@@ -512,9 +550,29 @@
         
         <div class="results-panel">
             <div class="panel-header">RESULT OF THE DELIBERATION</div>
-            <div id="logEntries">
-                <div class="loading">
-                    ▼ LOADING CONSENSUS DATA FROM MAGI SYSTEMS...
+            
+            <div class="panel-tabs">
+                <button class="tab-button active" onclick="switchTab('simple')">
+                    SIMPLE FUSION
+                </button>
+                <button class="tab-button" onclick="switchTab('multistage')">
+                    MULTI-STAGE DEBATE
+                </button>
+            </div>
+            
+            <div id="simpleTab" class="tab-content active">
+                <div id="logEntries">
+                    <div class="loading">
+                        ▼ LOADING CONSENSUS DATA FROM MAGI SYSTEMS...
+                    </div>
+                </div>
+            </div>
+            
+            <div id="multistageTab" class="tab-content">
+                <div id="multistageEntries">
+                    <div class="loading">
+                        ▼ LOADING MULTI-STAGE DEBATE DATA...
+                    </div>
                 </div>
             </div>
         </div>
@@ -557,6 +615,9 @@
                 }
                 
                 const text = await response.text();
+                
+                // 生データを保存（モーダル用）
+                window.rawLogData = text;
                 
                 if (!text.trim()) {
                     logEntriesDiv.innerHTML = `
@@ -710,8 +771,8 @@
                     <div style="text-align: center; margin-top: 20px; color: #666; letter-spacing: 2px;">
                         DISPLAYING ${recentEntries.length} OF ${entries.length} RECORDS
                         <div style="margin-top: 10px;">
-                            <a href="https://github.com/KG-NINJA/aMAGIgoesystem/blob/main/results/consensus_log.md" 
-                               style="color: #00ccff;">► ACCESS FULL LOG</a>
+                            <a href="#" onclick="openModal(); return false;" 
+                               style="color: #00ccff; cursor: pointer;">► ACCESS FULL LOG</a>
                         </div>
                     </div>
                 `;
@@ -725,6 +786,179 @@
         }
         
         loadResults();
+        loadMultistageResults();
+        
+        // タブ切り替え
+        function switchTab(tabName) {
+            // タブボタンの状態を更新
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // タブコンテンツの表示を切り替え
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            if (tabName === 'simple') {
+                document.getElementById('simpleTab').classList.add('active');
+            } else if (tabName === 'multistage') {
+                document.getElementById('multistageTab').classList.add('active');
+            }
+        }
+        
+        // 多段階ディベート結果の読み込み
+        async function loadMultistageResults() {
+            const multistageDiv = document.getElementById('multistageEntries');
+            
+            try {
+                // multistage_log.md を取得
+                const logResponse = await fetch('https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/multistage_log.md');
+                
+                if (!logResponse.ok) {
+                    throw new Error('No multistage log found');
+                }
+                
+                const logText = await logResponse.text();
+                
+                // multistage_debate.json も取得（詳細情報用）
+                const jsonResponse = await fetch('https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/multistage_debate.json');
+                let jsonData = null;
+                
+                if (jsonResponse.ok) {
+                    jsonData = await jsonResponse.json();
+                }
+                
+                if (!logText.trim() && !jsonData) {
+                    multistageDiv.innerHTML = `
+                        <div class="error">
+                            ✗ NO MULTI-STAGE DEBATE DATA FOUND<br>
+                            <div style="margin-top: 20px; font-size: 0.9em;">
+                                <a href="https://github.com/KG-NINJA/aMAGIgoesystem/actions" 
+                                   style="color: #00ccff;">► EXECUTE MULTI-STAGE DEBATE</a>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                displayMultistageResults(logText, jsonData);
+                
+            } catch (error) {
+                console.error('Error loading multistage results:', error);
+                multistageDiv.innerHTML = `
+                    <div class="error">
+                        ⚠ NO MULTI-STAGE DEBATE DATA AVAILABLE<br>
+                        <div style="margin-top: 20px; font-size: 0.9em;">
+                            Run multi-stage debate to see advanced deliberation results
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        function displayMultistageResults(logText, jsonData) {
+            const multistageDiv = document.getElementById('multistageEntries');
+            
+            if (jsonData) {
+                // JSON データから詳細表示
+                const similarity = jsonData.similarity_analysis || {};
+                const convergence = similarity.convergence || 0;
+                const convergenceText = convergence > 0 ? 
+                    `↑ INCREASED CONSENSUS (+${convergence.toFixed(3)})` : 
+                    `↓ DECREASED CONSENSUS (${convergence.toFixed(3)})`;
+                const convergenceColor = convergence > 0 ? '#00ff00' : '#ff6600';
+                
+                multistageDiv.innerHTML = `
+                    <div class="log-entry">
+                        <div class="timestamp">🕐 ${jsonData.timestamp || 'Unknown'}</div>
+                        <div class="query">❓ ${escapeHtml(jsonData.query || 'No query')}</div>
+                        
+                        <div style="margin-top: 20px;">
+                            <span class="stage-indicator stage-1">STAGE 1: PRIMARY DEBATE</span>
+                            <div style="margin-left: 20px; margin-top: 10px; color: #00ccff;">
+                                Independent perspectives from each MAGI system
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            <span class="stage-indicator stage-2">STAGE 2: REBUTTAL ROUND</span>
+                            <div style="margin-left: 20px; margin-top: 10px; color: #ffff00;">
+                                Re-evaluation after considering other viewpoints
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            <span class="stage-indicator stage-3">STAGE 3: META-CONSENSUS</span>
+                            <div class="response" style="margin-left: 20px; margin-top: 10px;">
+${escapeHtml(jsonData.stage3_meta_consensus || 'No consensus data').substring(0, 800)}${jsonData.stage3_meta_consensus && jsonData.stage3_meta_consensus.length > 800 ? '...' : ''}
+                            </div>
+                        </div>
+                        
+                        ${similarity.round1 !== undefined && similarity.round2 !== undefined ? `
+                        <div class="convergence-info">
+                            <div style="font-weight: bold; margin-bottom: 5px;">📊 CONVERGENCE ANALYSIS</div>
+                            <div>Round 1 Similarity: ${similarity.round1.toFixed(3)}</div>
+                            <div>Round 2 Similarity: ${similarity.round2.toFixed(3)}</div>
+                            <div style="color: ${convergenceColor}; font-weight: bold; margin-top: 5px;">
+                                ${convergenceText}
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <div style="text-align: center; margin-top: 20px;">
+                            <a href="#" onclick="openMultistageModal(); return false;" 
+                               style="color: #00ccff; cursor: pointer; letter-spacing: 2px;">
+                               ► VIEW FULL DEBATE TRANSCRIPT
+                            </a>
+                        </div>
+                    </div>
+                `;
+                
+                // モーダル用にデータを保存
+                window.multistageRawData = logText;
+                
+            } else {
+                // ログテキストのみの場合
+                multistageDiv.innerHTML = `
+                    <div class="log-entry">
+                        <div class="response">${escapeHtml(logText.substring(0, 1000))}...</div>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <a href="#" onclick="openMultistageModal(); return false;" 
+                               style="color: #00ccff; cursor: pointer;">
+                               ► VIEW FULL LOG
+                            </a>
+                        </div>
+                    </div>
+                `;
+                window.multistageRawData = logText;
+            }
+        }
+        
+        function openMultistageModal() {
+            const modal = document.getElementById('logModal');
+            const modalContent = document.getElementById('modalLogContent');
+            const modalTitle = document.querySelector('.modal-title');
+            
+            modalTitle.textContent = 'MULTI-STAGE DEBATE TRANSCRIPT';
+            modal.classList.add('show');
+            
+            if (window.multistageRawData) {
+                modalContent.textContent = window.multistageRawData;
+            } else {
+                modalContent.textContent = 'Loading...';
+                fetch('https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/multistage_log.md')
+                    .then(response => response.text())
+                    .then(text => {
+                        window.multistageRawData = text;
+                        modalContent.textContent = text;
+                    })
+                    .catch(err => {
+                        modalContent.textContent = 'Error loading data: ' + err.message;
+                    });
+            }
+        }
         
         // MAGIシステムの議論アニメーション
         function startDeliberation() {
