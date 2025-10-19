@@ -1,43 +1,63 @@
-name: MAGI Fusion Protocol (Manual)
+name: MAGI Fusion System
 
 on:
   workflow_dispatch:
     inputs:
-      question:
-        description: "質問内容を入力してください"
+      query:
+        description: 'Query for MAGI systems'
         required: true
-        default: "What is consciousness?"
-
-permissions:
-  contents: write
+        default: 'AGIの出現はいつ頃になりそうか?'
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
 
 jobs:
-  magi-fusion:
+  magi-consensus:
     runs-on: ubuntu-latest
-    env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
+    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Run MAGI Fusion Protocol
-        run: python scripts/magi_fusion.py "${{ github.event.inputs.question }}"
-
-      - name: Commit and push results
-        run: |
-          git config user.name "magi-system"
-          git config user.email "actions@github.com"
-          git add fusion_results.json consensus_log.md
-          git commit -m "MAGI fusion result: ${{ github.event.inputs.question }}"
-          git push
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Run MAGI Fusion
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      run: |
+        python scripts/magi_fusion.py "${{ github.event.inputs.query || 'What is the meaning of life?' }}"
+    
+    - name: Configure Git
+      run: |
+        git config user.name "magi-system"
+        git config user.email "magi-system@users.noreply.github.com"
+    
+    - name: Commit and Push Results
+      run: |
+        git pull origin main
+        git add results/
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "🤖 MAGI Fusion Results: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          git push origin main
+        fi
+      continue-on-error: true
+    
+    - name: Upload Results as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: magi-results-${{ github.run_number }}
+        path: results/
+        retention-days: 30
