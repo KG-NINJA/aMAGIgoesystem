@@ -6,7 +6,7 @@ on:
       query:
         description: 'Query for MAGI systems'
         required: true
-        default: 'What is AGI?'
+        default: 'What is consciousness?'
   schedule:
     - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
 
@@ -62,14 +62,48 @@ jobs:
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-        git pull --rebase origin main || true
+        
+        # 既存のファイルをバックアップ
+        if [ -f results/fusion_results.json ]; then
+          cp results/fusion_results.json /tmp/fusion_results.json.backup
+        fi
+        if [ -f results/consensus_log.md ]; then
+          cp results/consensus_log.md /tmp/consensus_log.md.backup
+        fi
+        
+        # リモートの最新状態に同期
+        git fetch origin main
+        git reset --hard origin/main
+        
+        # バックアップから復元
+        if [ -f /tmp/fusion_results.json.backup ]; then
+          cp /tmp/fusion_results.json.backup results/fusion_results.json
+        fi
+        if [ -f /tmp/consensus_log.md.backup ]; then
+          cp /tmp/consensus_log.md.backup results/consensus_log.md
+        fi
+        
+        # 変更をコミット
         git add results/
+        
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
           git commit -m "🤖 MAGI Fusion Results: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" \
                      -m "Query: ${{ github.event.inputs.query || 'What is the meaning of life?' }}"
-          git push
+          
+          # プッシュ（リトライ機能付き）
+          for i in 1 2 3; do
+            if git push origin main; then
+              echo "✓ Successfully pushed on attempt $i"
+              break
+            else
+              echo "✗ Push failed on attempt $i, retrying..."
+              git fetch origin main
+              git rebase origin/main
+              sleep 2
+            fi
+          done
         fi
       continue-on-error: false
     
