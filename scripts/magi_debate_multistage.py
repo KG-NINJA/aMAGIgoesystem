@@ -247,23 +247,38 @@ def run_multistage_debate(query):
     print("SIMILARITY ANALYSIS")
     print("="*70 + "\n")
     
-    model = SentenceTransformer("all-MiniLM-L6-v2")
-    
-    # Round 1 similarity
-    r1_vecs = [model.encode(r, convert_to_tensor=True) for r in round1_responses.values() if not r.startswith("[")]
-    if len(r1_vecs) >= 2:
-        r1_sim = calculate_similarity(r1_vecs)
-        print(f"Round 1 Similarity: {r1_sim:.3f}")
-    
-    # Round 2 similarity
-    r2_vecs = [model.encode(r, convert_to_tensor=True) for r in round2_responses.values() if not r.startswith("[")]
-    if len(r2_vecs) >= 2:
-        r2_sim = calculate_similarity(r2_vecs)
-        print(f"Round 2 Similarity: {r2_sim:.3f}")
+    try:
+        model = SentenceTransformer("all-MiniLM-L6-v2")
         
+        # Round 1 similarity
+        r1_vecs = [model.encode(r, convert_to_tensor=True) for r in round1_responses.values() if not r.startswith("[")]
         if len(r1_vecs) >= 2:
-            convergence = r2_sim - r1_sim
-            print(f"Convergence Rate: {convergence:+.3f} ({'increased' if convergence > 0 else 'decreased'} consensus)")
+            r1_sim = calculate_similarity(r1_vecs)
+            print(f"Round 1 Similarity: {r1_sim:.3f}")
+        else:
+            r1_sim = None
+        
+        # Round 2 similarity
+        r2_vecs = [model.encode(r, convert_to_tensor=True) for r in round2_responses.values() if not r.startswith("[")]
+        if len(r2_vecs) >= 2:
+            r2_sim = calculate_similarity(r2_vecs)
+            print(f"Round 2 Similarity: {r2_sim:.3f}")
+            
+            if r1_sim is not None:
+                convergence = r2_sim - r1_sim
+                print(f"Convergence Rate: {convergence:+.3f} ({'increased' if convergence > 0 else 'decreased'} consensus)")
+            else:
+                convergence = None
+        else:
+            r2_sim = None
+            convergence = None
+            
+    except Exception as e:
+        print(f"⚠️  Similarity analysis failed: {str(e)[:100]}")
+        print("Continuing without similarity metrics...")
+        r1_sim = None
+        r2_sim = None
+        convergence = None
     
     # ===== SAVE RESULTS =====
     timestamp = datetime.datetime.utcnow().isoformat()
