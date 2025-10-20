@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, sys, json, datetime
+import os, sys, json
+from datetime import datetime, timezone
 import openai, anthropic, google.generativeai as genai
 from sentence_transformers import SentenceTransformer, util
 from pathlib import Path
@@ -30,8 +31,9 @@ validate_api_keys()
 anthropic_client = anthropic.Anthropic(api_key=anthropic_api_key) if anthropic_api_key else None
 genai.configure(api_key=google_api_key)
 
-RESULTS_DIR = Path("results"); RESULTS_DIR.mkdir(exist_ok=True)
-timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+RESULTS_DIR = Path("results")
+RESULTS_DIR.mkdir(exist_ok=True)
+timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
 
 # =====================================================
 # Utility: モデル呼び出し
@@ -74,7 +76,6 @@ def get_gemini_response(prompt, model="gemini-2.0-flash-exp"):
 # =====================================================
 def get_web_intelligence(query, target_date=None):
     """Geminiで日英混在ソースを厳密収集・出典付き要約"""
-    from datetime import datetime, timezone
     if target_date is None:
         target_date = datetime.now(timezone.utc).date().isoformat()
 
@@ -101,7 +102,7 @@ Output format:
 """
     web_summary = get_gemini_response(search_prompt)
     observation = {
-        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "timestamp": datetime.utcnow().isoformat(),  # 修正済み
         "cutoff_date_utc": target_date,
         "query": query,
         "web_summary": web_summary
@@ -228,7 +229,7 @@ def run_multistage_debate(query):
 
     # 保存
     result = {
-        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "timestamp": datetime.utcnow().isoformat(),
         "query": query,
         "stage0_web_intelligence": web_summary,
         "stage1_primary_debate": r1,
@@ -249,5 +250,5 @@ def run_multistage_debate(query):
 # =====================================================
 if __name__ == "__main__":
     query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else \
-        "本語と英語の両方の情報源から、2025年10月20日現在のランサムウェア問題とAWS障害の関連を分析せよ。"
+        "日本語と英語の両方の情報源から、2025年10月20日現在のランサムウェア問題とAWS障害の関連を分析せよ。"
     run_multistage_debate(query)
