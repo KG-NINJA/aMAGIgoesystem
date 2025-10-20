@@ -33,6 +33,11 @@ jobs:
       run: |
         pip install -r requirements.txt
     
+    - name: Pre-download SentenceTransformer model
+      run: |
+        python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+      continue-on-error: true
+    
     - name: Create results directory
       run: |
         mkdir -p results
