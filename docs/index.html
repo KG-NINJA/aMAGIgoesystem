@@ -549,7 +549,13 @@
         </div>
         
         <div class="results-panel">
-            <div class="panel-header">RESULT OF THE DELIBERATION</div>
+            <div class="panel-header">
+                RESULT OF THE DELIBERATION
+                <button onclick="reloadAllData()" 
+                        style="float: right; padding: 5px 15px; background: rgba(0, 255, 0, 0.2); border: 2px solid #00ff00; color: #00ff00; cursor: pointer; font-family: 'Orbitron', monospace; letter-spacing: 2px; font-size: 0.8em;">
+                    ⟳ RELOAD
+                </button>
+            </div>
             
             <div class="panel-tabs">
                 <button class="tab-button active" onclick="switchTab('simple')">
@@ -579,6 +585,9 @@
         
         <div class="footer">
             <div>NERV - MAGI SYSTEM INTERFACE v4.096</div>
+            <div style="margin-top: 5px; font-size: 0.8em; color: #666;" id="lastUpdate">
+                Last checked: <span id="updateTime">Loading...</span>
+            </div>
             <div style="margin-top: 10px;">
                 <a href="https://github.com/KG-NINJA/aMAGIgoesystem" target="_blank">
                     ► VIEW SYSTEM SOURCE ON GITHUB
@@ -788,6 +797,42 @@
         loadResults();
         loadMultistageResults();
         
+        // 更新時刻を表示
+        function updateTimestamp() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('ja-JP', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
+            });
+            document.getElementById('updateTime').textContent = timeStr;
+        }
+        
+        updateTimestamp();
+        
+        // データの再読み込み
+        function reloadAllData() {
+            console.log('Reloading all data...');
+            
+            // キャッシュをクリア
+            window.rawLogData = null;
+            window.multistageRawData = null;
+            
+            // ローディング表示
+            document.getElementById('logEntries').innerHTML = '<div class="loading">▼ RELOADING DATA...</div>';
+            document.getElementById('multistageEntries').innerHTML = '<div class="loading">▼ RELOADING DATA...</div>';
+            
+            // 少し待ってから再読み込み
+            setTimeout(() => {
+                loadResults();
+                loadMultistageResults();
+                updateTimestamp();
+            }, 500);
+        }
+        
         // タブ切り替え
         function switchTab(tabName) {
             // タブボタンの状態を更新
@@ -813,8 +858,11 @@
             const multistageDiv = document.getElementById('multistageEntries');
             
             try {
+                // キャッシュバスターを追加
+                const timestamp = new Date().getTime();
+                
                 // multistage_log.md を取得
-                const logResponse = await fetch('https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/multistage_log.md');
+                const logResponse = await fetch(`https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/multistage_log.md?t=${timestamp}`);
                 
                 if (!logResponse.ok) {
                     throw new Error('No multistage log found');
@@ -823,7 +871,7 @@
                 const logText = await logResponse.text();
                 
                 // multistage_debate.json も取得（詳細情報用）
-                const jsonResponse = await fetch('https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/multistage_debate.json');
+                const jsonResponse = await fetch(`https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/multistage_debate.json?t=${timestamp}`);
                 let jsonData = null;
                 
                 if (jsonResponse.ok) {
