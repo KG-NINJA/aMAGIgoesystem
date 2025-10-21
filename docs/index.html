@@ -820,6 +820,7 @@
             // キャッシュをクリア
             window.rawLogData = null;
             window.multistageRawData = null;
+            window.consensusRawData = null;
             
             // ローディング表示
             document.getElementById('logEntries').innerHTML = '<div class="loading">▼ RELOADING DATA...</div>';
@@ -864,49 +865,212 @@
                 // multistage_log.md を取得
                 const logResponse = await fetch(`https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/multistage_log.md?t=${timestamp}`);
                 
-                if (!logResponse.ok) {
-                    throw new Error('No multistage log found');
+                // consensus_log.md も取得
+                const consensusResponse = await fetch(`https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/consensus_log.md?t=${timestamp}`);
+                
+                let hasMultistage = false;
+                let hasConsensus = false;
+                let multistageText = '';
+                let consensusText = '';
+                
+                if (logResponse.ok) {
+                    multistageText = await logResponse.text();
+                    hasMultistage = multistageText.trim().length > 0;
                 }
                 
-                const logText = await logResponse.text();
-                
-                // multistage_debate.json も取得（詳細情報用）
-                const jsonResponse = await fetch(`https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/multistage_debate.json?t=${timestamp}`);
-                let jsonData = null;
-                
-                if (jsonResponse.ok) {
-                    jsonData = await jsonResponse.json();
+                if (consensusResponse.ok) {
+                    consensusText = await consensusResponse.text();
+                    hasConsensus = consensusText.trim().length > 0;
                 }
                 
-                if (!logText.trim() && !jsonData) {
+                if (!hasMultistage && !hasConsensus) {
                     multistageDiv.innerHTML = `
                         <div class="error">
-                            ✗ NO MULTI-STAGE DEBATE DATA FOUND<br>
+                            ✗ NO DEBATE DATA FOUND<br>
                             <div style="margin-top: 20px; font-size: 0.9em;">
                                 <a href="https://github.com/KG-NINJA/aMAGIgoesystem/actions" 
-                                   style="color: #00ccff;">► EXECUTE MULTI-STAGE DEBATE</a>
+                                   style="color: #00ccff;">► EXECUTE MAGI DEBATE SEQUENCE</a>
                             </div>
                         </div>
                     `;
                     return;
                 }
                 
-                displayMultistageResults(logText, jsonData);
+                // multistage_debate.json も取得（詳細情報用）
+                const jsonResponse = await fetch(`https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/multistage_debate.json?t=${timestamp}`);
+                let jsonData = null;
+                
+                if (jsonResponse.ok) {
+                    try {
+                        jsonData = await jsonResponse.json();
+                    } catch (e) {
+                        console.log('Failed to parse JSON:', e);
+                    }
+                }
+                
+                // 両方のログを統合して表示
+                displayCombinedResults(multistageText, consensusText, jsonData);
                 
             } catch (error) {
                 console.error('Error loading multistage results:', error);
                 multistageDiv.innerHTML = `
                     <div class="error">
-                        ⚠ NO MULTI-STAGE DEBATE DATA AVAILABLE<br>
+                        ⚠ NO DEBATE DATA AVAILABLE<br>
                         <div style="margin-top: 20px; font-size: 0.9em;">
-                            Run multi-stage debate to see advanced deliberation results
+                            Run debates to see results here
                         </div>
                     </div>
                 `;
             }
         }
         
-        function displayMultistageResults(logText, jsonData) {
+        function displayCombinedResults(multistageText, consensusText, jsonData) {
+            const multistageDiv = document.getElementById('multistageEntries');
+            let htmlOutput = '';
+            
+            // Multistage Debate の表示
+            if (multistageText && multistageText.trim()) {
+                const multistageEntries = parseMultistageLog(multistageText);
+                
+                if (multistageEntries.length > 0) {
+                    const entry = multistageEntries[multistageEntries.length - 1];
+                    
+                    let convergenceHtml = '';
+                    if (jsonData && jsonData.similarity_analysis) {
+                        const similarity = jsonData.similarity_analysis;
+                        const convergence = similarity.convergence || 0;
+                        const convergenceText = convergence > 0 ? 
+                            `↑ INCREASED CONSENSUS (+${convergence.toFixed(3)})` : 
+                            convergence < 0 ?
+                            `↓ DECREASED CONSENSUS (${convergence.toFixed(3)})` :
+                            `→ NO CHANGE (${convergence.toFixed(3)})`;
+                        const convergenceColor = convergence > 0 ? '#00ff00' : convergence < 0 ? '#ff6600' : '#00ccff';
+                        
+                        convergenceHtml = `
+                            <div class="convergence-info">
+                                <div style="font-weight: bold; margin-bottom: 5px;">📊 CONVERGENCE ANALYSIS</div>
+                                <div>Round 1 Similarity: ${(similarity.round1 || 0).toFixed(3)}</div>
+                                <div>Round 2 Similarity: ${(similarity.round2 || 0).toFixed(3)}</div>
+                                <div style="color: ${convergenceColor}; font-weight: bold; margin-top: 5px;">
+                                    ${convergenceText}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    htmlOutput += `
+                        <div class="log-entry">
+                            <div style="color: #00ccff; font-weight: bold; margin-bottom: 15px; font-size: 1.1em;">
+                                🧠 LATEST MULTI-STAGE DEBATE
+                            </div>
+                            <div class="timestamp">🕐 ${entry.timestamp}</div>
+                            <div class="query">❓ ${escapeHtml(entry.query)}</div>
+                            
+                            <div style="margin-top: 20px;">
+                                <span class="stage-indicator stage-1">STAGE 1: PRIMARY DEBATE</span>
+                                <div style="margin-left: 20px; margin-top: 10px; font-size: 0.85em;">
+                                    ${entry.stage1.logic ? `<div style="color: #00ccff; margin-bottom: 5px;">▸ BALTHASAR-2 (Logic)</div>
+                                    <div style="color: #888; margin-bottom: 15px;">${escapeHtml(entry.stage1.logic.substring(0, 200))}...</div>` : ''}
+                                    
+                                    ${entry.stage1.ethics ? `<div style="color: #00ccff; margin-bottom: 5px;">▸ CASPER-3 (Ethics)</div>
+                                    <div style="color: #888; margin-bottom: 15px;">${escapeHtml(entry.stage1.ethics.substring(0, 200))}...</div>` : ''}
+                                    
+                                    ${entry.stage1.intuition ? `<div style="color: #00ccff; margin-bottom: 5px;">▸ MELCHIOR-1 (Intuition)</div>
+                                    <div style="color: #888; margin-bottom: 15px;">${escapeHtml(entry.stage1.intuition.substring(0, 200))}...</div>` : ''}
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 20px;">
+                                <span class="stage-indicator stage-2">STAGE 2: REBUTTAL ROUND</span>
+                                <div style="margin-left: 20px; margin-top: 10px; color: #ffff00; font-size: 0.85em;">
+                                    Re-evaluation after considering other viewpoints
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 20px;">
+                                <span class="stage-indicator stage-3">STAGE 3: META-CONSENSUS</span>
+                                <div class="response" style="margin-left: 20px; margin-top: 10px; font-size: 0.85em;">
+${escapeHtml(entry.stage3.substring(0, 1000))}${entry.stage3.length > 1000 ? '\n...[TRUNCATED]' : ''}
+                                </div>
+                            </div>
+                            
+                            ${convergenceHtml}
+                            
+                            <div style="text-align: center; margin-top: 20px;">
+                                <a href="#" onclick="openMultistageModal('multistage'); return false;" 
+                                   style="color: #00ccff; cursor: pointer; letter-spacing: 2px;">
+                                   ► VIEW FULL 3-STAGE DEBATE TRANSCRIPT
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    
+                    window.multistageRawData = multistageText;
+                }
+            }
+            
+            // Consensus Log の表示
+            if (consensusText && consensusText.trim()) {
+                const consensusEntries = parseConsensusLog(consensusText);
+                
+                if (consensusEntries.length > 0) {
+                    // 最新3件を表示
+                    const recentEntries = consensusEntries.slice(-3).reverse();
+                    
+                    htmlOutput += `
+                        <div style="margin-top: 30px; border-top: 2px solid #333; padding-top: 20px;">
+                            <div style="color: #ff6600; font-weight: bold; margin-bottom: 15px; font-size: 1.1em;">
+                                📝 RECENT SIMPLE FUSION RESULTS
+                            </div>
+                        </div>
+                    `;
+                    
+                    recentEntries.forEach(entry => {
+                        htmlOutput += `
+                            <div class="log-entry" style="margin-top: 15px;">
+                                <div class="timestamp">🕐 ${entry.timestamp}</div>
+                                <div class="query">❓ ${escapeHtml(entry.query)}</div>
+                                <div class="response" style="margin-top: 10px;">${escapeHtml(entry.response.substring(0, 400))}${entry.response.length > 400 ? '...' : ''}</div>
+                                <span class="consensus-badge ${entry.isConsensus ? 'success' : 'failed'}">
+                                    ${entry.isConsensus ? '✓ CONSENSUS APPROVED' : '✗ CONSENSUS REJECTED'}
+                                </span>
+                            </div>
+                        `;
+                    });
+                    
+                    if (consensusEntries.length > 3) {
+                        htmlOutput += `
+                            <div style="text-align: center; margin-top: 20px; color: #666; letter-spacing: 2px;">
+                                DISPLAYING 3 OF ${consensusEntries.length} RECORDS
+                            </div>
+                        `;
+                    }
+                    
+                    htmlOutput += `
+                        <div style="text-align: center; margin-top: 15px;">
+                            <a href="#" onclick="openMultistageModal('consensus'); return false;" 
+                               style="color: #00ccff; cursor: pointer; letter-spacing: 2px;">
+                               ► VIEW ALL SIMPLE FUSION LOGS
+                            </a>
+                        </div>
+                    `;
+                    
+                    window.consensusRawData = consensusText;
+                }
+            }
+            
+            if (htmlOutput) {
+                multistageDiv.innerHTML = htmlOutput;
+            } else {
+                multistageDiv.innerHTML = `
+                    <div class="error">
+                        ✗ NO VALID DEBATE DATA
+                    </div>
+                `;
+            }
+        }
+        
+        function parseMultistageLog(text) {
             const multistageDiv = document.getElementById('multistageEntries');
             
             // マークダウンからデータを抽出
