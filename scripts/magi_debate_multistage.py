@@ -1,259 +1,414 @@
-# scripts/magi_debate_multistage.py
-import os, sys, json, requests
-from datetime import datetime
+import os, sys, json, datetime
 import openai, anthropic, google.generativeai as genai
 from sentence_transformers import SentenceTransformer, util
-from bs4 import BeautifulSoup
+import requests
 
-# =====================================================
-# APIキー設定
-# =====================================================
+# APIキーを取得し、前後の空白と改行を削除
 openai.api_key = os.getenv("OPENAI_API_KEY", "").strip()
 anthropic_api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
-google_search_key = os.getenv("GOOGLE_SEARCH_API_KEY", "").strip()  # ← Google検索用
+google_api_key = os.getenv("GOOGLE_API_KEY", "").strip()  # Gemini用
+google_search_key = os.getenv("GOOGLE_SEARCH_API_KEY", "").strip()  # Custom Search用
 google_cx = os.getenv("GOOGLE_CX", "").strip()
-gemini_key = os.getenv("GEMINI_API_KEY", "").strip()  # ← Gemini用
 
+# APIキーの検証
 def validate_api_keys():
     errors = []
     if not openai.api_key:
         errors.append("OPENAI_API_KEY is not set")
-    if not google_search_key:
-        errors.append("GOOGLE_SEARCH_API_KEY is not set (Custom Search)")
-    if not google_cx:
-        errors.append("GOOGLE_CX is not set")
-    if not gemini_key:
-        print("⚠️  Warning: GEMINI_API_KEY is not set - Gemini unavailable")
+    if not google_api_key:
+        errors.append("GOOGLE_API_KEY (Gemini) is not set")
+    
     if not anthropic_api_key:
-        print("⚠️  Warning: ANTHROPIC_API_KEY is not set - Claude unavailable")
+        print("⚠️  Warning: ANTHROPIC_API_KEY is not set - Claude will be unavailable")
+    
+    if not google_search_key or not google_cx:
+        print("⚠️  Warning: GOOGLE_SEARCH_API_KEY or GOOGLE_CX not set - Web search will be limited")
+    
     if errors:
-        for e in errors:
-            print(f"  - {e}")
+        print("ERROR: Missing required API keys:")
+        for error in errors:
+            print(f"  - {error}")
         sys.exit(1)
 
 validate_api_keys()
-anthropic_client = anthropic.Anthropic(api_key=anthropic_api_key) if anthropic_api_key else None
-genai.configure(api_key=gemini_key)
+
+# Anthropic clientは条件付きで初期化
+anthropic_client = None
+if anthropic_api_key:
+    try:
+        anthropic_client = anthropic.Anthropic(api_key=anthropic_api_key)
+    except Exception as e:
+        print(f"⚠️  Warning: Failed to initialize Anthropic client: {e}")
+
+genai.configure(api_key=google_api_key)
 
 # =====================================================
-# Google Custom Search
+# Stage 0: Web Intelligence (証拠収集)
 # =====================================================
-def google_search(query, num=6, lang="lang_en"):
-    """Google Custom Search JSON APIで検索"""
-    if not google_search_key or not google_cx:
-        raise EnvironmentError("GOOGLE_SEARCH_API_KEY または GOOGLE_CX が設定されていません。")
 
-    url = "https://www.googleapis.com/customsearch/v1"
-    params = {"key": google_search_key, "cx": google_cx, "q": query, "lr": lang, "num": num}
-    r = requests.get(url, params=params)
-    if r.status_code != 200:
-        raise RuntimeError(f"Google Search API Error {r.status_code}: {r.text}")
-    return r.json().get("items", [])
+def get_web_intelligence(query, target_date="2025-10-20"):
+    """Stage 0: Web検索による証拠収集"""
+    search_prompt = f"""
+You are a cautious web analyst. DO NOT speculate.
 
-def clean_text(html):
-    return BeautifulSoup(html, "html.parser").get_text()
+Task: Summarize **published** information about:
+"{query}"
+
+Cut-off date (UTC): <= {target_date}
+Languages: include **Japanese** and **English**
+Sources (must be verifiable URLs): at least **≥3 JP** and **≥3 EN** from:
+  JP: ipa.go.jp, jpcert.or.jp, nisc.go.jp, soumu.go.jp, metro.tokyo.lg.jp, *.ac.jp, major JP media
+  EN: cisa.gov, nist.gov, enisa.europa.eu, europol.europa.eu, who.int, cloudsecurityalliance.org, aws.amazon.com/security/blog, major media
+
+Rules:
+- Every claim needs an inline citation: [LANG][YYYY-MM-DD] Publisher — Title — URL
+- If evidence is missing, write exactly: INSUFFICIENT EVIDENCE.
+- No future tense or predictions. No invented URLs. Only publicly published pages.
+
+Output:
+## Key Findings
+- JP/EN mixed bullets with inline citations
+
+## Source List
+- [JP] YYYY-MM-DD Publisher — Title — URL
+- [EN] YYYY-MM-DD Publisher — Title — URL
+"""
+    
+    return get_openai_response(search_prompt, model="gpt-4o")
 
 # =====================================================
-# 各モデル呼び出し
+# Stage 1: Primary Debate (独立思考)
 # =====================================================
+
+def ask_primary(system_name, role, query_with_web):
+    """第一ラウンド：各AIが独立に回答（証拠ベース）"""
+    prompt = f"""You are {system_name} ({role}).
+Use ONLY claims that appear explicitly in [Web Intelligence Summary] with their citations.
+If a needed claim is missing → write INSUFFICIENT EVIDENCE. No new facts. No predictions.
+
+{query_with_web}
+
+Deliver your analysis from your role, grounding each claim with a cited bullet from Stage 0."""
+    
+    return prompt
+
 def get_openai_response(prompt, model="gpt-4o"):
     try:
-        r = openai.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}], timeout=90)
-        return r.choices[0].message.content.strip()
+        print(f"    Querying OpenAI {model}...")
+        r = openai.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            timeout=60
+        )
+        response = r.choices[0].message.content.strip()
+        print("    ✓ OpenAI response received")
+        return response
     except Exception as e:
-        return f"[OpenAI Error: {str(e)[:150]}]"
+        print(f"    ✗ OpenAI failed: {str(e)[:100]}")
+        return f"[OpenAI Error: {str(e)[:200]}]"
 
 def get_anthropic_response(prompt, model="claude-sonnet-4-5-20250929"):
     if not anthropic_client:
-        return "[Anthropic Error: client not initialized]"
+        return "[Anthropic Error: API client not initialized]"
+    
     try:
-        r = anthropic_client.messages.create(model=model, max_tokens=8192, messages=[{"role": "user", "content": prompt}], timeout=90)
-        return r.content[0].text.strip()
+        print(f"    Querying Anthropic {model}...")
+        r = anthropic_client.messages.create(
+            model=model,
+            max_tokens=8192,
+            messages=[{"role": "user", "content": prompt}],
+            timeout=60
+        )
+        response = r.content[0].text.strip()
+        print("    ✓ Anthropic response received")
+        return response
     except Exception as e:
-        return f"[Anthropic Error: {str(e)[:150]}]"
+        print(f"    ✗ Anthropic failed: {str(e)[:100]}")
+        return f"[Anthropic Error: {str(e)[:200]}]"
 
 def get_gemini_response(prompt, model="gemini-2.0-flash-exp"):
     try:
+        print(f"    Querying Google {model}...")
         m = genai.GenerativeModel(model)
-        r = m.generate_content(prompt)
-        return r.text.strip()
+        r = m.generate_content(
+            prompt,
+            generation_config={"max_output_tokens": 2048, "temperature": 0.2}
+        )
+        text = (r.text or "").strip()
+        if not text:
+            # one quick retry
+            print("    Retrying Gemini (empty response)...")
+            r = m.generate_content(
+                prompt,
+                generation_config={"max_output_tokens": 2048, "temperature": 0.2}
+            )
+            text = (r.text or "").strip()
+        response = text if text else "[Gemini Error: empty response]"
+        if not response.startswith("["):
+            print("    ✓ Gemini response received")
+        else:
+            print(f"    ✗ Gemini: {response}")
+        return response
     except Exception as e:
+        print(f"    ✗ Gemini failed: {str(e)[:100]}")
         return f"[Gemini Error: {str(e)[:150]}]"
 
 # =====================================================
-# Stage 0: Web Intelligence (Google検索)
+# Stage 2: Rebuttal Round (協調的再思考)
 # =====================================================
-def get_web_intelligence(query):
+
+def create_rebuttal_prompt(system_name, role, original_response, other_responses, query):
+    """反論ラウンド用のプロンプト生成（証拠制約付き）"""
+    other_names = {
+        "BALTHASAR-2 (Logic)": ["CASPER-3 (Ethics)", "MELCHIOR-1 (Intuition)"],
+        "CASPER-3 (Ethics)": ["BALTHASAR-2 (Logic)", "MELCHIOR-1 (Intuition)"],
+        "MELCHIOR-1 (Intuition)": ["BALTHASAR-2 (Logic)", "CASPER-3 (Ethics)"]
+    }
+    
+    others = other_names.get(system_name, [])
+    
+    prompt = f"""You are {system_name} ({role}). Evidence constraint unchanged.
+Use ONLY Stage 0 citations already surfaced in Round 1.
+If a claim lacks a citation → mark as INSUFFICIENT EVIDENCE and exclude it.
+
+Original Query: {query}
+
+=== YOUR ROUND 1 RESPONSE ===
+{original_response}
+
+=== {others[0] if len(others) > 0 else "SYSTEM 2"} RESPONSE ===
+{other_responses[0] if len(other_responses) > 0 else "[Not available]"}
+
+=== {others[1] if len(others) > 1 else "SYSTEM 3"} RESPONSE ===
+{other_responses[1] if len(other_responses) > 1 else "[Not available]"}
+
+=== RE-EVALUATION INSTRUCTIONS ===
+1) Adopt valid evidence-backed points from others
+2) Remove unsupported claims from your position
+3) Synthesize corrected position with citations
+4) No predictions or unsourced claims
+
+Output your refined, evidence-grounded second opinion."""
+
+    return prompt
+
+# =====================================================
+# Stage 3: Meta-Consensus (統合判断)
+# =====================================================
+
+def create_consensus_prompt(query, round1_responses, round2_responses):
+    """メタAIによる最終統合"""
+    prompt = f"""You are the Meta-Consensus System analyzing outputs from three AI perspectives.
+
+Original Query: {query}
+
+=== ROUND 1: PRIMARY DEBATE ===
+Logic (BALTHASAR-2): {round1_responses['logic']}
+
+Ethics (CASPER-3): {round1_responses['ethics']}
+
+Intuition (MELCHIOR-1): {round1_responses['intuition']}
+
+=== ROUND 2: REBUTTAL & REFINEMENT ===
+Logic (BALTHASAR-2): {round2_responses['logic']}
+
+Ethics (CASPER-3): {round2_responses['ethics']}
+
+Intuition (MELCHIOR-1): {round2_responses['intuition']}
+
+=== META-CONSENSUS TASK ===
+1. Identify points of convergence across all perspectives
+2. Highlight valuable divergences that enrich understanding
+3. Synthesize a balanced conclusion that honors all three viewpoints
+4. Indicate confidence level (High/Medium/Low) based on consensus strength
+
+Provide a comprehensive meta-analysis and final recommendation."""
+
+    return prompt
+
+# =====================================================
+# Main Execution
+# =====================================================
+
+def run_multistage_debate(query):
+    print("="*70)
+    print("MAGI MULTI-STAGE DELIBERATION SYSTEM")
+    print("="*70)
+    print(f"\nQuery: {query}\n")
+    
+    # ===== STAGE 0: WEB INTELLIGENCE =====
     print("\n" + "="*70)
-    print("STAGE 0: WEB INTELLIGENCE (Google Search Integration)")
+    print("STAGE 0: WEB INTELLIGENCE (Evidence Collection)")
     print("="*70 + "\n")
+    
+    web_summary = get_web_intelligence(query, target_date="2025-10-20")
+    
+    print("✓ Web intelligence collected")
+    print(f"Summary length: {len(web_summary)} chars\n")
+    
+    # クエリにWeb情報を統合
+    query_with_web = f"""Original Query: {query}
 
-    combined = []
-    for lang in ["lang_ja", "lang_en"]:
-        try:
-            items = google_search(query, num=5, lang=lang)
-            for it in items:
-                snippet = clean_text(it.get("snippet", ""))
-                title = clean_text(it.get("title", ""))
-                link = it.get("link", "")
-                combined.append(f"[{lang.upper()}] {title}\n{snippet}\nURL: {link}")
-        except Exception as e:
-            combined.append(f"[{lang.upper()} ERROR: {e}]")
+=== WEB INTELLIGENCE SUMMARY ===
+{web_summary}
 
-    summary_prompt = f"""
-Summarize the following search results about the topic below using factual, verifiable insights only.
-Topic: {query}
-
-Results:
-{json.dumps(combined, ensure_ascii=False, indent=2)}
-
-Output concise bullet points (JP+EN mix ok). Add publication date and source name if found.
+=== YOUR TASK ===
+Analyze the query using ONLY the evidence provided above.
 """
-    web_summary = get_gemini_response(summary_prompt)
-    timestamp = datetime.utcnow().isoformat()
-
-    obs = {"timestamp": timestamp, "query": query, "web_summary": web_summary}
+    
+    # ===== STAGE 1: PRIMARY DEBATE =====
+    print("\n" + "="*70)
+    print("STAGE 1: PRIMARY DEBATE (Independent Perspectives)")
+    print("="*70 + "\n")
+    
+    logic_prompt = ask_primary("BALTHASAR-2", "Logical Analysis", query_with_web)
+    ethics_prompt = ask_primary("CASPER-3", "Ethical Evaluation", query_with_web)
+    intuition_prompt = ask_primary("MELCHIOR-1", "Intuitive Insight", query_with_web)
+    
+    round1_logic = get_openai_response(logic_prompt)
+    round1_ethics = get_anthropic_response(ethics_prompt)
+    round1_intuition = get_gemini_response(intuition_prompt)
+    
+    round1_responses = {
+        "logic": round1_logic,
+        "ethics": round1_ethics,
+        "intuition": round1_intuition
+    }
+    
+    # ===== STAGE 2: REBUTTAL ROUND =====
+    print("\n" + "="*70)
+    print("STAGE 2: REBUTTAL ROUND (Collaborative Re-thinking)")
+    print("="*70 + "\n")
+    
+    # Logic re-evaluates
+    logic_rebuttal_prompt = create_rebuttal_prompt(
+        "BALTHASAR-2 (Logic)", "Logical Analysis",
+        round1_logic, [round1_ethics, round1_intuition], query
+    )
+    round2_logic = get_openai_response(logic_rebuttal_prompt)
+    
+    # Ethics re-evaluates
+    ethics_rebuttal_prompt = create_rebuttal_prompt(
+        "CASPER-3 (Ethics)", "Ethical Evaluation",
+        round1_ethics, [round1_logic, round1_intuition], query
+    )
+    round2_ethics = get_anthropic_response(ethics_rebuttal_prompt)
+    
+    # Intuition re-evaluates
+    intuition_rebuttal_prompt = create_rebuttal_prompt(
+        "MELCHIOR-1 (Intuition)", "Intuitive Insight",
+        round1_intuition, [round1_logic, round1_ethics], query
+    )
+    round2_intuition = get_gemini_response(intuition_rebuttal_prompt)
+    
+    round2_responses = {
+        "logic": round2_logic,
+        "ethics": round2_ethics,
+        "intuition": round2_intuition
+    }
+    
+    # ===== STAGE 3: META-CONSENSUS =====
+    print("\n" + "="*70)
+    print("STAGE 3: META-CONSENSUS (Final Synthesis)")
+    print("="*70 + "\n")
+    
+    consensus_prompt = create_consensus_prompt(query, round1_responses, round2_responses)
+    meta_consensus = get_openai_response(consensus_prompt, model="gpt-4o")
+    
+    # ===== SIMILARITY ANALYSIS =====
+    print("\n" + "="*70)
+    print("SIMILARITY ANALYSIS")
+    print("="*70 + "\n")
+    
+    try:
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+        
+        # Round 1 similarity
+        r1_vecs = [model.encode(r, convert_to_tensor=True) for r in round1_responses.values() if not r.startswith("[")]
+        if len(r1_vecs) >= 2:
+            r1_sim = calculate_similarity(r1_vecs)
+            print(f"Round 1 Similarity: {r1_sim:.3f}")
+        else:
+            r1_sim = None
+        
+        # Round 2 similarity
+        r2_vecs = [model.encode(r, convert_to_tensor=True) for r in round2_responses.values() if not r.startswith("[")]
+        if len(r2_vecs) >= 2:
+            r2_sim = calculate_similarity(r2_vecs)
+            print(f"Round 2 Similarity: {r2_sim:.3f}")
+            
+            if r1_sim is not None:
+                convergence = r2_sim - r1_sim
+                print(f"Convergence Rate: {convergence:+.3f} ({'increased' if convergence > 0 else 'decreased'} consensus)")
+            else:
+                convergence = None
+        else:
+            r2_sim = None
+            convergence = None
+            
+    except Exception as e:
+        print(f"⚠️  Similarity analysis failed: {str(e)[:100]}")
+        print("Continuing without similarity metrics...")
+        r1_sim = None
+        r2_sim = None
+        convergence = None
+    
+    # ===== SAVE RESULTS =====
+    timestamp = datetime.datetime.utcnow().isoformat()
+    
+    result_data = {
+        "timestamp": timestamp,
+        "query": query,
+        "stage0_web_intelligence": web_summary,
+        "stage1_primary_debate": round1_responses,
+        "stage2_rebuttal_round": round2_responses,
+        "stage3_meta_consensus": meta_consensus,
+        "similarity_analysis": {
+            "round1": r1_sim if r1_sim is not None else "N/A",
+            "round2": r2_sim if r2_sim is not None else "N/A",
+            "convergence": convergence if convergence is not None else "N/A"
+        }
+    }
+    
     os.makedirs("results", exist_ok=True)
-    with open("results/web_observation.json", "w", encoding="utf-8") as f:
-        json.dump(obs, f, ensure_ascii=False, indent=2)
-    print("✓ Web intelligence observation saved.")
-    return web_summary
+    
+    with open("results/multistage_debate.json", "w", encoding="utf-8") as f:
+        json.dump(result_data, f, ensure_ascii=False, indent=2)
+    
+    with open("results/multistage_log.md", "a", encoding="utf-8") as f:
+        f.write(f"\n\n## {timestamp}\n\n")
+        f.write(f"**Query:** {query}\n\n")
+        f.write(f"### Stage 0: Web Intelligence\n\n")
+        f.write(f"{web_summary[:800]}...\n\n")
+        f.write(f"### Stage 1: Primary Debate\n\n")
+        for name, resp in round1_responses.items():
+            f.write(f"**{name.upper()}:**\n{resp[:500]}...\n\n")
+        f.write(f"### Stage 2: Rebuttal Round\n\n")
+        for name, resp in round2_responses.items():
+            f.write(f"**{name.upper()}:**\n{resp[:500]}...\n\n")
+        f.write(f"### Stage 3: Meta-Consensus\n\n{meta_consensus}\n\n")
+        f.write(f"---\n")
+    
+    print(f"\n" + "="*70)
+    print("META-CONSENSUS OUTPUT")
+    print("="*70 + "\n")
+    print(meta_consensus)
+    print(f"\n" + "="*70)
+    print(f"Results saved to:")
+    print(f"  - results/multistage_debate.json")
+    print(f"  - results/multistage_log.md")
+    print("="*70)
 
-# =====================================================
-# Debate Prompts
-# =====================================================
-def ask_primary(name, role, query):
-    return f"""You are {name}, representing {role} in the MAGI system.
-
-Topic: {query}
-
-Provide your independent analysis from your perspective ({role}).
-Be comprehensive and multi-angled."""
-
-def create_rebuttal_prompt(name, role, original, others, query):
-    o = {"BALTHASAR-2 (Logic)": ["CASPER-3 (Ethics)", "MELCHIOR-1 (Intuition)"],
-         "CASPER-3 (Ethics)": ["BALTHASAR-2 (Logic)", "MELCHIOR-1 (Intuition)"],
-         "MELCHIOR-1 (Intuition)": ["BALTHASAR-2 (Logic)", "CASPER-3 (Ethics)"]}[name]
-    return f"""You are {name}, representing {role}.
-Query: {query}
-
-=== Round 1 ===
-Your response:
-{original}
-
-{o[0]}'s response:
-{others[0]}
-
-{o[1]}'s response:
-{others[1]}
-
-Now re-evaluate your stance:
-1. Identify valuable insights you missed
-2. Correct flaws
-3. Defend valid points others missed
-4. Output your refined stance."""
-
-def create_consensus_prompt(query, r1, r2):
-    return f"""You are the Meta-Consensus AI analyzing Logic, Ethics, and Intuition.
-
-Query: {query}
-
-=== Round 1 ===
-Logic: {r1['logic']}
-Ethics: {r1['ethics']}
-Intuition: {r1['intuition']}
-
-=== Round 2 ===
-Logic: {r2['logic']}
-Ethics: {r2['ethics']}
-Intuition: {r2['intuition']}
-
-=== TASK ===
-1. Identify convergence and divergence
-2. Integrate all into a unified synthesis
-3. Rate confidence (High/Medium/Low)
-4. Provide a clear final consensus."""
-
-# =====================================================
-# Similarity Metric
-# =====================================================
 def calculate_similarity(vecs):
-    total = count = 0
+    """ベクトル間の平均類似度を計算"""
+    total = 0
+    count = 0
     for i in range(len(vecs)):
         for j in range(i + 1, len(vecs)):
             total += float(util.cos_sim(vecs[i], vecs[j]))
             count += 1
-    return total / count if count else 0
+    return total / count if count > 0 else 0
 
-# =====================================================
-# メイン実行
-# =====================================================
-def run_multistage_debate(query):
-    print("="*70)
-    print("🧠 MAGI MULTI-STAGE DEBATE SYSTEM")
-    print("="*70)
-    print(f"Query: {query}\n")
-
-    # ---- Stage 0 ----
-    web_summary = get_web_intelligence(query)
-    enriched_query = f"{query}\n\n[Web Intelligence Summary]\n{web_summary}"
-
-    # ---- Stage 1 ----
-    print("\n" + "="*70)
-    print("STAGE 1: PRIMARY DEBATE")
-    print("="*70)
-    r1_logic = get_gemini_response(ask_primary("BALTHASAR-2 (Logic)", "Logical Analysis", enriched_query))
-    r1_ethics = get_anthropic_response(ask_primary("CASPER-3 (Ethics)", "Ethical Evaluation", enriched_query))
-    r1_intuition = get_openai_response(ask_primary("MELCHIOR-1 (Intuition)", "Intuitive Insight", enriched_query))
-    r1 = {"logic": r1_logic, "ethics": r1_ethics, "intuition": r1_intuition}
-
-    # ---- Stage 2 ----
-    print("\n" + "="*70)
-    print("STAGE 2: REBUTTAL ROUND")
-    print("="*70)
-    r2_logic = get_gemini_response(create_rebuttal_prompt("BALTHASAR-2 (Logic)", "Logical Analysis", r1_logic, [r1_ethics, r1_intuition], query))
-    r2_ethics = get_anthropic_response(create_rebuttal_prompt("CASPER-3 (Ethics)", "Ethical Evaluation", r1_ethics, [r1_logic, r1_intuition], query))
-    r2_intuition = get_openai_response(create_rebuttal_prompt("MELCHIOR-1 (Intuition)", "Intuitive Insight", r1_intuition, [r1_logic, r1_ethics], query))
-    r2 = {"logic": r2_logic, "ethics": r2_ethics, "intuition": r2_intuition}
-
-    # ---- Stage 3 ----
-    print("\n" + "="*70)
-    print("STAGE 3: META-CONSENSUS")
-    print("="*70)
-    consensus = get_openai_response(create_consensus_prompt(query, r1, r2))
-
-    # ---- 類似度 ----
-    try:
-        model = SentenceTransformer("all-MiniLM-L6-v2")
-        r1_vecs = [model.encode(v, convert_to_tensor=True) for v in r1.values() if not v.startswith("[")]
-        r2_vecs = [model.encode(v, convert_to_tensor=True) for v in r2.values() if not v.startswith("[")]
-        sim1 = calculate_similarity(r1_vecs) if len(r1_vecs) >= 2 else None
-        sim2 = calculate_similarity(r2_vecs) if len(r2_vecs) >= 2 else None
-        conv = (sim2 - sim1) if sim1 and sim2 else None
-    except Exception as e:
-        print(f"⚠️ Similarity check failed: {e}")
-        sim1 = sim2 = conv = None
-
-    # ---- 保存 ----
-    result = {
-        "timestamp": datetime.utcnow().isoformat(),
-        "query": query,
-        "stage0_web_intelligence": web_summary,
-        "stage1_primary_debate": r1,
-        "stage2_rebuttal_round": r2,
-        "stage3_meta_consensus": consensus,
-        "similarity_analysis": {"round1": sim1, "round2": sim2, "convergence": conv},
-    }
-    os.makedirs("results", exist_ok=True)
-    with open("results/magi_web_debate.json", "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
-    print("\n✓ Results saved to results/magi_web_debate.json\n")
-    print("--- META CONSENSUS OUTPUT ---\n")
-    print(consensus)
-
-# =====================================================
-# 実行エントリポイント
-# =====================================================
 if __name__ == "__main__":
-    query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "ランサムウェアとAWS障害の関連を分析せよ"
+    query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "Should AI systems have rights?"
     run_multistage_debate(query)
