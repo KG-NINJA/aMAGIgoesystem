@@ -47,6 +47,8 @@ jobs:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        GOOGLE_SEARCH_API_KEY: ${{ secrets.GOOGLE_SEARCH_API_KEY }}
+        GOOGLE_CX: ${{ secrets.GOOGLE_CX }}
       run: |
         python scripts/magi_debate_multistage.py "${{ github.event.inputs.query || 'Should AI systems have rights?' }}"
     
