@@ -70,45 +70,63 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         
-        # 既存のファイルがある場合は一旦退避
+        # 結果ファイルが存在するか確認
+        echo "Checking for result files..."
+        ls -la results/ || echo "No results directory"
+        
+        # 既存のファイルをバックアップ
         if [ -f results/multistage_debate.json ]; then
+          echo "✓ multistage_debate.json found"
           cp results/multistage_debate.json /tmp/multistage_debate.json.backup
         fi
         if [ -f results/multistage_log.md ]; then
+          echo "✓ multistage_log.md found"
           cp results/multistage_log.md /tmp/multistage_log.md.backup
         fi
         
-        # リモートの変更を取得
+        # リモートの最新状態に同期
+        echo "Fetching latest changes..."
         git fetch origin main
         git reset --hard origin/main
         
         # バックアップから復元
         if [ -f /tmp/multistage_debate.json.backup ]; then
           cp /tmp/multistage_debate.json.backup results/multistage_debate.json
+          echo "✓ Restored multistage_debate.json"
         fi
         if [ -f /tmp/multistage_log.md.backup ]; then
           cp /tmp/multistage_log.md.backup results/multistage_log.md
+          echo "✓ Restored multistage_log.md"
         fi
         
         # 変更を追加
+        echo "Adding changes..."
         git add results/
+        git status
         
         if git diff --staged --quiet; then
-          echo "No changes to commit"
+          echo "⚠️  No changes to commit"
         else
+          echo "✓ Changes detected, committing..."
           git commit -m "🧠 MAGI Multi-Stage Debate: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" \
                      -m "Query: ${{ github.event.inputs.query || 'Should AI systems have rights?' }}" \
                      -m "3-stage deliberation with rebuttal round completed"
           
-          # 強制的にプッシュ（最大3回リトライ）
+          # プッシュ（リトライ機能付き）
+          echo "Pushing to GitHub..."
           for i in 1 2 3; do
             if git push origin main; then
-              echo "Successfully pushed on attempt $i"
+              echo "✅ Successfully pushed on attempt $i"
               break
             else
-              echo "Push failed on attempt $i, retrying..."
-              git pull --rebase origin main
+              echo "❌ Push failed on attempt $i, retrying..."
+              git fetch origin main
+              git rebase origin/main
               sleep 2
+            fi
+            if [ $i -eq 3 ]; then
+              echo "❌ Failed to push after 3 attempts"
+              exit 1
             fi
           done
         fi
