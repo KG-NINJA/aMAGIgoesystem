@@ -18,9 +18,9 @@ a MAGi goe System は、3つの異なる視点を持つAIシステム（Logic, E
 
 | System | AI Model | Role | Perspective |
 |--------|----------|------|-------------|
-| **BALTHASAR-2** | OpenAI GPT-4o | Logic System | 論理的分析・構造的思考 |
+| **BALTHASAR-2** | Google Gemini 2.0 | Logic System | 論理的分析・構造的思考 |
 | **CASPER-3** | Anthropic Claude Sonnet 4.5 | Ethics System | 倫理的評価・道徳的判断 |
-| **MELCHIOR-1** | Google Gemini 2.0 | Intuition System | 直感的洞察・創造的思考 |
+| **MELCHIOR-1** | OpenAI GPT-4o | Intuition System | 直感的洞察・創造的思考 |
 
 ---
 
