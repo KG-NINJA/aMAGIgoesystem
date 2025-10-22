@@ -865,4 +865,154 @@
                     recentEntries.forEach(entry => {
                         htmlOutput += `
                             <div class="log-entry">
-                                <div class="timestamp">
+                                <div class="timestamp">TIMESTAMP: ${entry.timestamp}</div>
+                                <div class="query">QUERY: ${escapeHtml(entry.query)}</div>
+                                <div class="response">${escapeHtml(entry.response.substring(0, 400))}${entry.response.length > 400 ? '...' : ''}</div>
+                                <span class="consensus-badge ${entry.isConsensus ? 'success' : 'failed'}">
+                                    ${entry.isConsensus ? 'CONSENSUS APPROVED' : 'CONSENSUS REJECTED'}
+                                </span>
+                            </div>
+                        `;
+                    });
+                    
+                    if (consensusEntries.length > 3) {
+                        htmlOutput += `
+                            <div style="text-align: center; margin-top: 20px; color: #666; letter-spacing: 2px;">
+                                DISPLAYING 3 OF ${consensusEntries.length} RECORDS
+                            </div>
+                        `;
+                    }
+                    
+                    htmlOutput += `
+                        <div style="text-align: center; margin-top: 15px;">
+                            <a href="#" onclick="openModal('consensus'); return false;" 
+                               style="color: #00ccff; cursor: pointer; letter-spacing: 2px;">
+                               VIEW ALL SIMPLE FUSION LOGS
+                            </a>
+                        </div>
+                    `;
+                    
+                    window.consensusRawData = consensusText;
+                }
+            }
+            
+            if (htmlOutput) {
+                multistageDiv.innerHTML = htmlOutput;
+            } else {
+                multistageDiv.innerHTML = `
+                    <div class="error">
+                        NO VALID DEBATE DATA
+                    </div>
+                `;
+            }
+        }
+        
+        function updateTimestamp() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('ja-JP', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
+            });
+            document.getElementById('updateTime').textContent = timeStr;
+        }
+        
+        function reloadAllData() {
+            console.log('Reloading all data...');
+            
+            window.rawLogData = null;
+            window.multistageRawData = null;
+            window.consensusRawData = null;
+            
+            document.getElementById('logEntries').innerHTML = '<div class="loading">RELOADING DATA...</div>';
+            document.getElementById('multistageEntries').innerHTML = '<div class="loading">RELOADING DATA...</div>';
+            
+            setTimeout(() => {
+                loadResults();
+                loadMultistageResults();
+                updateTimestamp();
+            }, 500);
+        }
+        
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            if (tabName === 'simple') {
+                document.getElementById('simpleTab').classList.add('active');
+            } else if (tabName === 'multistage') {
+                document.getElementById('multistageTab').classList.add('active');
+            }
+        }
+        
+        function startDeliberation() {
+            const systems = [
+                { id: 'balthasar', delay: 0 },
+                { id: 'melchior', delay: 800 },
+                { id: 'casper', delay: 1600 }
+            ];
+            
+            systems.forEach(sys => {
+                setTimeout(() => {
+                    const unit = document.getElementById(sys.id);
+                    const status = document.getElementById(`${sys.id}-status`);
+                    
+                    unit.classList.add('deliberating');
+                    status.textContent = 'DELIBERATING';
+                    status.className = 'status deliberating';
+                    
+                    setTimeout(() => {
+                        unit.classList.remove('deliberating');
+                        unit.classList.add('approved');
+                        status.textContent = 'APPROVED';
+                        status.className = 'status operational';
+                    }, 1500);
+                }, sys.delay);
+            });
+            
+            setTimeout(() => {
+                const header = document.querySelector('.status-bar');
+                header.textContent = 'RESULT OF THE DELIBERATION: ALL APPROVED';
+                header.style.color = '#00ff00';
+                header.style.textShadow = '0 0 10px #00ff00';
+            }, 4000);
+        }
+        
+        setTimeout(startDeliberation, 3000);
+        
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('magi-unit') || e.target.closest('.magi-unit')) {
+                ['balthasar', 'casper', 'melchior'].forEach(id => {
+                    const unit = document.getElementById(id);
+                    const status = document.getElementById(`${id}-status`);
+                    unit.className = 'magi-unit';
+                    if (id === 'casper') {
+                        status.textContent = 'LIMITED';
+                        status.className = 'status degraded';
+                    } else {
+                        status.textContent = 'OPERATIONAL';
+                        status.className = 'status operational';
+                    }
+                });
+                
+                const header = document.querySelector('.status-bar');
+                header.textContent = 'DIRECT LINK CONNECTION: MAGI_01';
+                header.style.color = '#ff6600';
+                header.style.textShadow = 'none';
+                
+                setTimeout(startDeliberation, 500);
+            }
+        });
+        
+        updateTimestamp();
+        loadResults();
+        loadMultistageResults();
