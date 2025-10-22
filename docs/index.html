@@ -53,30 +53,6 @@
             position: relative;
         }
         
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: repeating-linear-gradient(
-                0deg,
-                transparent,
-                transparent 2px,
-                rgba(0, 255, 0, 0.03) 2px,
-                rgba(0, 255, 0, 0.03) 4px
-            );
-            pointer-events: none;
-        }
-        
-        .status-bar {
-            color: #ff6600;
-            font-size: 1.2em;
-            margin-bottom: 10px;
-            letter-spacing: 2px;
-        }
-        
         .main-title {
             font-size: 3em;
             font-weight: 900;
@@ -93,12 +69,11 @@
             margin-bottom: 15px;
         }
         
-        .kgninja-tag {
-            text-align: center;
-            font-size: 1.1em;
+        .status-bar {
             color: #ff6600;
+            font-size: 1.2em;
+            margin-bottom: 10px;
             letter-spacing: 2px;
-            margin-top: 10px;
         }
         
         .systems-grid {
@@ -113,72 +88,7 @@
             padding: 20px;
             background: rgba(0, 0, 0, 0.8);
             position: relative;
-            transition: all 0.5s;
-        }
-        
-        .magi-unit.deliberating {
-            border-color: #ffff00;
-            animation: pulse 0.5s ease-in-out infinite;
-        }
-        
-        .magi-unit.approved {
-            border-color: #00ff00;
-            background: rgba(0, 255, 0, 0.15);
-            box-shadow: 0 0 30px rgba(0, 255, 0, 0.6);
-        }
-        
-        .magi-unit.rejected {
-            border-color: #ff0000;
-            background: rgba(255, 0, 0, 0.1);
-        }
-        
-        @keyframes pulse {
-            0%, 100% { 
-                box-shadow: 0 0 10px rgba(255, 255, 0, 0.3);
-            }
-            50% { 
-                box-shadow: 0 0 30px rgba(255, 255, 0, 0.8);
-            }
-        }
-        
-        .magi-unit:hover {
-            background: rgba(0, 204, 255, 0.1);
-            box-shadow: 0 0 20px rgba(0, 204, 255, 0.5);
-        }
-        
-        .magi-unit::after {
-            content: '待機';
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 2em;
-            opacity: 0.3;
-            color: #666;
-            transition: all 0.5s;
-        }
-        
-        .magi-unit.deliberating::after {
-            content: '審議';
-            color: #ffff00;
-            opacity: 1;
-            animation: blink 0.5s ease-in-out infinite;
-        }
-        
-        .magi-unit.approved::after {
-            content: '承認';
-            color: #00ff00;
-            opacity: 1;
-        }
-        
-        .magi-unit.rejected::after {
-            content: '否認';
-            color: #ff0000;
-            opacity: 1;
-        }
-        
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
+            text-align: center;
         }
         
         .magi-name {
@@ -186,56 +96,24 @@
             font-weight: 900;
             color: #00ccff;
             margin-bottom: 10px;
-            text-align: center;
             letter-spacing: 4px;
         }
         
         .magi-role {
-            text-align: center;
             color: #00ff00;
             margin-bottom: 15px;
             letter-spacing: 2px;
-        }
-        
-        .magi-model {
-            font-size: 0.8em;
-            color: #888;
-            text-align: center;
-            margin-bottom: 15px;
         }
         
         .status {
             display: block;
-            text-align: center;
             padding: 8px;
             margin-top: 10px;
             font-weight: bold;
             letter-spacing: 2px;
-            transition: all 0.5s;
-        }
-        
-        .status.operational {
             background: rgba(0, 255, 0, 0.2);
             border: 2px solid #00ff00;
             color: #00ff00;
-        }
-        
-        .status.degraded {
-            background: rgba(255, 102, 0, 0.2);
-            border: 2px solid #ff6600;
-            color: #ff6600;
-        }
-        
-        .status.deliberating {
-            background: rgba(255, 255, 0, 0.2);
-            border: 2px solid #ffff00;
-            color: #ffff00;
-            animation: statusBlink 0.5s ease-in-out infinite;
-        }
-        
-        @keyframes statusBlink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
         }
         
         .results-panel {
@@ -243,6 +121,18 @@
             padding: 25px;
             background: rgba(0, 0, 0, 0.9);
             margin-bottom: 20px;
+        }
+        
+        .panel-header {
+            font-size: 1.5em;
+            color: #ff6600;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ff6600;
+            letter-spacing: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .panel-tabs {
@@ -261,6 +151,7 @@
             font-size: 1em;
             letter-spacing: 2px;
             transition: all 0.3s;
+            font-family: 'Orbitron', monospace;
         }
         
         .tab-button:hover {
@@ -272,7 +163,6 @@
             background: rgba(255, 102, 0, 0.2);
             border-color: #ff6600;
             color: #ff6600;
-            box-shadow: 0 0 10px rgba(255, 102, 0, 0.5);
         }
         
         .tab-content {
@@ -283,37 +173,17 @@
             display: block;
         }
         
-        .panel-header {
-            font-size: 1.5em;
-            color: #ff6600;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #ff6600;
-            letter-spacing: 3px;
-        }
-        
         .log-entry {
             border: 2px solid #00ff00;
             padding: 20px;
             margin-bottom: 20px;
             background: rgba(0, 255, 0, 0.05);
-            position: relative;
-        }
-        
-        .log-entry::before {
-            content: '■';
-            position: absolute;
-            left: -15px;
-            top: 20px;
-            color: #00ff00;
-            font-size: 1.5em;
         }
         
         .timestamp {
             color: #00ccff;
             font-size: 0.9em;
             margin-bottom: 10px;
-            font-family: monospace;
             letter-spacing: 1px;
         }
         
@@ -322,15 +192,16 @@
             font-weight: bold;
             margin-bottom: 15px;
             font-size: 1.1em;
-            letter-spacing: 1px;
         }
         
         .response {
             color: #00ff00;
-            line-height: 1.8;
+            line-height: 1.6;
             white-space: pre-wrap;
-            font-size: 0.9em;
+            font-size: 0.85em;
             font-family: 'Courier New', monospace;
+            max-height: 200px;
+            overflow: hidden;
         }
         
         .consensus-badge {
@@ -339,6 +210,7 @@
             margin-top: 10px;
             font-weight: bold;
             letter-spacing: 2px;
+            font-size: 0.9em;
         }
         
         .consensus-badge.success {
@@ -368,44 +240,6 @@
             color: #ff0000;
         }
         
-        .footer {
-            text-align: center;
-            color: #888;
-            margin-top: 40px;
-            padding: 20px;
-            border-top: 2px solid #333;
-            font-size: 0.9em;
-            letter-spacing: 2px;
-        }
-        
-        .footer a {
-            color: #00ccff;
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-        
-        .footer a:hover {
-            color: #00ff00;
-        }
-        
-        .code-display {
-            margin-top: 10px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.8em;
-            color: #666;
-        }
-        
-        @media (max-width: 768px) {
-            .systems-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .main-title {
-                font-size: 2em;
-                letter-spacing: 4px;
-            }
-        }
-        
         .modal {
             display: none;
             position: fixed;
@@ -415,12 +249,6 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.95);
-            animation: fadeIn 0.3s;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
         }
         
         .modal.show {
@@ -460,40 +288,47 @@
             font-size: 2em;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s;
             border: 2px solid #ff0000;
             padding: 5px 15px;
             background: rgba(255, 0, 0, 0.1);
         }
         
-        .close-btn:hover {
-            background: rgba(255, 0, 0, 0.3);
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
-        }
-        
         .modal-body {
             color: #00ff00;
             font-family: 'Courier New', monospace;
-            line-height: 1.8;
+            line-height: 1.6;
             white-space: pre-wrap;
             word-wrap: break-word;
+            font-size: 0.85em;
         }
         
-        .modal-content::-webkit-scrollbar {
-            width: 10px;
+        .reload-btn {
+            padding: 5px 15px;
+            background: rgba(0, 255, 0, 0.2);
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            letter-spacing: 2px;
+            font-size: 0.8em;
         }
         
-        .modal-content::-webkit-scrollbar-track {
-            background: #111;
+        .reload-btn:hover {
+            background: rgba(0, 255, 0, 0.4);
         }
         
-        .modal-content::-webkit-scrollbar-thumb {
-            background: #00ff00;
-            border: 1px solid #000;
+        .view-full-link {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #00ccff;
+            cursor: pointer;
+            letter-spacing: 1px;
+            font-size: 0.9em;
         }
         
-        .modal-content::-webkit-scrollbar-thumb:hover {
-            background: #00ccff;
+        .view-full-link:hover {
+            color: #00ff00;
         }
     </style>
 </head>
@@ -506,94 +341,49 @@
             <div class="status-bar">ACCESS MODE: SUPERUSER</div>
             <h1 class="main-title">a MAGi goe System</h1>
             <div class="subtitle">Multi-Agent Generative Intelligence Consensus Analysis</div>
-            <div class="kgninja-tag">#KGNINJA</div>
-            <div class="code-display">
-                CODE: 256 | FILE: MAGI_SYS | EXTENSION: 4096 | PRIORITY: AAA
-            </div>
         </div>
         
         <div class="systems-grid">
-            <div class="magi-unit" id="balthasar">
+            <div class="magi-unit">
                 <div class="magi-name">BALTHASAR-2</div>
                 <div class="magi-role">Logic System</div>
-                <div class="magi-model">Google Gemini 2.0</div>
-                <div class="code-display">
-                    Layer3: ConnectionContact<br>
-                    0930
-                </div>
-                <span class="status operational" id="balthasar-status">OPERATIONAL</span>
+                <span class="status">OPERATIONAL</span>
             </div>
             
-            <div class="magi-unit" id="casper">
+            <div class="magi-unit">
                 <div class="magi-name">CASPER-3</div>
                 <div class="magi-role">Ethics System</div>
-                <div class="magi-model">Anthropic Claude Sonnet 4.5</div>
-                <div class="code-display">
-                    Layer2: DataLink<br>
-                    0928-LPAD
-                </div>
-                <span class="status degraded" id="casper-status">LIMITED</span>
+                <span class="status">OPERATIONAL</span>
             </div>
             
-            <div class="magi-unit" id="melchior">
+            <div class="magi-unit">
                 <div class="magi-name">MELCHIOR-1</div>
                 <div class="magi-role">Intuition System</div>
-                <div class="magi-model">OpenAI GPT-4o</div>
-                <div class="code-display">
-                    Layer1: ProtocolConnector<br>
-                    I.225-BasicInterface
-                </div>
-                <span class="status operational" id="melchior-status">OPERATIONAL</span>
+                <span class="status">OPERATIONAL</span>
             </div>
         </div>
         
         <div class="results-panel">
             <div class="panel-header">
                 RESULT OF THE DELIBERATION
-                <button onclick="reloadAllData()" 
-                        style="float: right; padding: 5px 15px; background: rgba(0, 255, 0, 0.2); border: 2px solid #00ff00; color: #00ff00; cursor: pointer; font-family: 'Orbitron', monospace; letter-spacing: 2px; font-size: 0.8em;">
-                    RELOAD
-                </button>
+                <button class="reload-btn" onclick="loadData()">RELOAD</button>
             </div>
             
             <div class="panel-tabs">
-                <button class="tab-button active" onclick="switchTab('simple')">
-                    SIMPLE FUSION
-                </button>
-                <button class="tab-button" onclick="switchTab('multistage')">
-                    MULTI-STAGE DEBATE
-                </button>
+                <button class="tab-button active" onclick="switchTab(event, 'simple')">SIMPLE FUSION</button>
+                <button class="tab-button" onclick="switchTab(event, 'multistage')">MULTI-STAGE DEBATE</button>
             </div>
             
             <div id="simpleTab" class="tab-content active">
                 <div id="logEntries">
-                    <div class="loading">
-                        LOADING CONSENSUS DATA FROM MAGI SYSTEMS...
-                    </div>
+                    <div class="loading">LOADING CONSENSUS DATA FROM MAGI SYSTEMS...</div>
                 </div>
             </div>
             
             <div id="multistageTab" class="tab-content">
                 <div id="multistageEntries">
-                    <div class="loading">
-                        LOADING MULTI-STAGE DEBATE DATA...
-                    </div>
+                    <div class="loading">LOADING MULTI-STAGE DEBATE DATA...</div>
                 </div>
-            </div>
-        </div>
-        
-        <div class="footer">
-            <div>NERV - MAGI SYSTEM INTERFACE v4.096</div>
-            <div style="margin-top: 5px; font-size: 0.8em; color: #666;" id="lastUpdate">
-                Last checked: <span id="updateTime">Loading...</span>
-            </div>
-            <div style="margin-top: 10px;">
-                <a href="https://github.com/KG-NINJA/aMAGIgoesystem" target="_blank">
-                    VIEW SYSTEM SOURCE ON GITHUB
-                </a>
-            </div>
-            <div style="margin-top: 10px; color: #444;">
-                Powered by OpenAI | Anthropic | Google AI
             </div>
         </div>
     </div>
@@ -601,197 +391,195 @@
     <div id="logModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title" id="modalTitle">RAW CONSENSUS LOG DATA</div>
+                <div class="modal-title">FULL CONSENSUS LOG DATA</div>
                 <span class="close-btn" onclick="closeModal()">CLOSE</span>
             </div>
-            <div class="modal-body" id="modalLogContent">
-                Loading...
-            </div>
+            <div class="modal-body" id="modalContent">Loading...</div>
         </div>
     </div>
     
     <script>
-        async function loadResults() {
-            const logEntriesDiv = document.getElementById('logEntries');
+        let allEntries = [];
+        
+        function switchTab(e, tabName) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabName === 'simple' ? 'simpleTab' : 'multistageTab').classList.add('active');
+        }
+        
+        function openModal() {
+            document.getElementById('logModal').classList.add('show');
+        }
+        
+        function closeModal() {
+            document.getElementById('logModal').classList.remove('show');
+        }
+        
+        window.onclick = (e) => {
+            const modal = document.getElementById('logModal');
+            if (e.target === modal) closeModal();
+        };
+        
+        function parseLogEntries(text) {
+            const entries = [];
+            const lines = text.split('\n');
+            let currentEntry = null;
+            let responseLines = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                
+                // 新しいエントリの開始
+                if (line.startsWith('## ') && line.match(/\d{4}-\d{2}-\d{2}/)) {
+                    if (currentEntry && currentEntry.query) {
+                        currentEntry.response = responseLines.join('\n').trim();
+                        entries.push(currentEntry);
+                        responseLines = [];
+                    }
+                    
+                    currentEntry = {
+                        timestamp: line.replace('## ', '').trim(),
+                        query: '',
+                        response: '',
+                        isConsensus: false
+                    };
+                }
+                
+                // クエリ行
+                else if (line.startsWith('**Query:**')) {
+                    if (currentEntry) {
+                        currentEntry.query = line.replace('**Query:** ', '').trim();
+                    }
+                }
+                
+                // コンセンサス状態
+                else if (line.includes('Consensus reached')) {
+                    currentEntry.isConsensus = true;
+                    responseLines.push(line);
+                }
+                else if (line.includes('Consensus failed')) {
+                    currentEntry.isConsensus = false;
+                    responseLines.push(line);
+                }
+                
+                // レスポンス内容（区切り線以外）
+                else if (currentEntry && line.trim() && !line.startsWith('[') && !line.startsWith('---')) {
+                    responseLines.push(line);
+                }
+            }
+            
+            // 最後のエントリを追加
+            if (currentEntry && currentEntry.query) {
+                currentEntry.response = responseLines.join('\n').trim();
+                entries.push(currentEntry);
+            }
+            
+            return entries;
+        }
+        
+        async function loadData() {
+            const logDiv = document.getElementById('logEntries');
+            const multistageDiv = document.getElementById('multistageEntries');
+            
+            logDiv.innerHTML = '<div class="loading">LOADING...</div>';
+            multistageDiv.innerHTML = '<div class="loading">LOADING...</div>';
             
             try {
                 const response = await fetch('https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/consensus_log.md');
                 
                 if (!response.ok) {
-                    throw new Error('Failed to load results');
+                    throw new Error(`HTTP ${response.status}`);
                 }
                 
                 const text = await response.text();
-                window.rawLogData = text;
                 
                 if (!text.trim()) {
-                    logEntriesDiv.innerHTML = `
-                        <div class="error">
-                            NO DELIBERATION DATA FOUND<br>
-                            <div style="margin-top: 20px; font-size: 0.9em;">
-                                <a href="https://github.com/KG-NINJA/aMAGIgoesystem/actions" 
-                                   style="color: #00ccff;">EXECUTE MAGI FUSION SEQUENCE</a>
-                            </div>
-                        </div>
-                    `;
+                    logDiv.innerHTML = '<div class="error">NO DATA FOUND</div>';
+                    multistageDiv.innerHTML = '<div class="error">NO DATA FOUND</div>';
                     return;
                 }
                 
-                const entries = parseConsensusLog(text);
-                displayEntries(entries);
+                allEntries = parseLogEntries(text);
+                
+                if (allEntries.length === 0) {
+                    logDiv.innerHTML = '<div class="error">NO VALID ENTRIES FOUND</div>';
+                    multistageDiv.innerHTML = '<div class="error">NO VALID ENTRIES FOUND</div>';
+                    return;
+                }
+                
+                // SIMPLE FUSIONタブに最新5件を表示
+                displaySimpleTab(allEntries);
+                
+                // MULTI-STAGE DEBATEタブに最新3件を表示
+                displayMultistageTab(allEntries);
+                
+                // モーダル用に生データを保存
+                document.getElementById('modalContent').textContent = text;
                 
             } catch (error) {
-                console.error('Error loading results:', error);
-                logEntriesDiv.innerHTML = `
-                    <div class="error">
-                        CONNECTION ERROR: UNABLE TO RETRIEVE MAGI DATA<br>
-                        <div style="margin-top: 20px; font-size: 0.9em;">
-                            <a href="#" onclick="openModal('consensus'); return false;" 
-                               style="color: #00ccff; cursor: pointer;">VIEW RAW CONSENSUS LOG</a>
-                        </div>
+                console.error('Error:', error);
+                const errorMsg = `<div class="error">ERROR: ${error.message}</div>`;
+                logDiv.innerHTML = errorMsg;
+                multistageDiv.innerHTML = errorMsg;
+            }
+        }
+        
+        function displaySimpleTab(entries) {
+            const logDiv = document.getElementById('logEntries');
+            const recentEntries = entries.slice(-5).reverse();
+            
+            let html = '';
+            recentEntries.forEach(entry => {
+                const responsePreview = entry.response.substring(0, 300) + (entry.response.length > 300 ? '...' : '');
+                html += `
+                    <div class="log-entry">
+                        <div class="timestamp">TIMESTAMP: ${escapeHtml(entry.timestamp)}</div>
+                        <div class="query">QUERY: ${escapeHtml(entry.query)}</div>
+                        <div class="response">${escapeHtml(responsePreview)}</div>
+                        <span class="consensus-badge ${entry.isConsensus ? 'success' : 'failed'}">
+                            ${entry.isConsensus ? 'CONSENSUS APPROVED' : 'CONSENSUS FAILED'}
+                        </span>
                     </div>
                 `;
-            }
-        }
-        
-        function openModal(type = 'consensus') {
-            const modal = document.getElementById('logModal');
-            const modalContent = document.getElementById('modalLogContent');
-            const modalTitle = document.getElementById('modalTitle');
-            
-            if (type === 'multistage') {
-                modalTitle.textContent = 'MULTI-STAGE DEBATE TRANSCRIPT';
-            } else {
-                modalTitle.textContent = 'CONSENSUS LOG DATA';
-            }
-            
-            modal.classList.add('show');
-            
-            if (type === 'multistage' && window.multistageRawData) {
-                modalContent.textContent = window.multistageRawData;
-            } else if (type === 'consensus' && window.rawLogData) {
-                modalContent.textContent = window.rawLogData;
-            } else {
-                modalContent.textContent = 'Loading raw log data...';
-                const url = type === 'multistage' 
-                    ? 'https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/multistage_log.md'
-                    : 'https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/consensus_log.md';
-                
-                fetch(url)
-                    .then(response => response.text())
-                    .then(text => {
-                        if (type === 'multistage') {
-                            window.multistageRawData = text;
-                        } else {
-                            window.rawLogData = text;
-                        }
-                        modalContent.textContent = text;
-                    })
-                    .catch(err => {
-                        modalContent.textContent = 'Error loading log data: ' + err.message;
-                    });
-            }
-        }
-        
-        function closeModal() {
-            const modal = document.getElementById('logModal');
-            modal.classList.remove('show');
-        }
-        
-        window.onclick = function(event) {
-            const modal = document.getElementById('logModal');
-            if (event.target === modal) {
-                closeModal();
-            }
-        }
-        
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                closeModal();
-            }
-        });
-        
-        function parseConsensusLog(text) {
-            const entries = [];
-            const sections = text.split(/(?=\n## )/);
-            
-            for (const section of sections) {
-                if (!section.trim()) continue;
-                
-                const lines = section.split('\n');
-                const entry = {
-                    timestamp: '',
-                    query: '',
-                    response: '',
-                    isConsensus: false
-                };
-                
-                let inResponse = false;
-                
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i];
-                    
-                    if (line.startsWith('## ')) {
-                        entry.timestamp = line.replace('## ', '').trim();
-                    } else if (line.startsWith('**Query:**') || line.startsWith('**Q:**')) {
-                        entry.query = line.replace(/\*\*Query:\*\*|\*\*Q:\*\*/g, '').trim();
-                    } else if (line.includes('Consensus reached')) {
-                        entry.isConsensus = true;
-                        inResponse = true;
-                        entry.response += line + '\n';
-                    } else if (line.includes('Consensus failed')) {
-                        entry.isConsensus = false;
-                        inResponse = true;
-                        entry.response += line + '\n';
-                    } else if (inResponse && line.trim() !== '---') {
-                        entry.response += line + '\n';
-                    }
-                }
-                
-                if (entry.timestamp && entry.query) {
-                    entries.push(entry);
-                }
-            }
-            
-            return entries.reverse();
-        }
-        
-        function displayEntries(entries) {
-            const logEntriesDiv = document.getElementById('logEntries');
-            
-            if (entries.length === 0) {
-                logEntriesDiv.innerHTML = `
-                    <div class="error">
-                        NO VALID DELIBERATION RECORDS
-                    </div>
-                `;
-                return;
-            }
-            
-            const recentEntries = entries.slice(0, 5);
-            
-            logEntriesDiv.innerHTML = recentEntries.map(entry => `
-                <div class="log-entry">
-                    <div class="timestamp">TIMESTAMP: ${entry.timestamp}</div>
-                    <div class="query">QUERY: ${escapeHtml(entry.query)}</div>
-                    <div class="response">${escapeHtml(entry.response.substring(0, 600))}${entry.response.length > 600 ? '\n...[TRUNCATED]' : ''}</div>
-                    <span class="consensus-badge ${entry.isConsensus ? 'success' : 'failed'}">
-                        ${entry.isConsensus ? 'CONSENSUS APPROVED' : 'CONSENSUS REJECTED'}
-                    </span>
-                </div>
-            `).join('');
+            });
             
             if (entries.length > 5) {
-                logEntriesDiv.innerHTML += `
-                    <div style="text-align: center; margin-top: 20px; color: #666; letter-spacing: 2px;">
-                        DISPLAYING ${recentEntries.length} OF ${entries.length} RECORDS
-                        <div style="margin-top: 10px;">
-                            <a href="#" onclick="openModal('consensus'); return false;" 
-                               style="color: #00ccff; cursor: pointer;">ACCESS FULL LOG</a>
-                        </div>
+                html += `<div style="text-align: center; margin-top: 15px;">
+                    <a onclick="openModal()" class="view-full-link">VIEW FULL LOG (${entries.length} records)</a>
+                </div>`;
+            }
+            
+            logDiv.innerHTML = html;
+        }
+        
+        function displayMultistageTab(entries) {
+            const multistageDiv = document.getElementById('multistageEntries');
+            const recentEntries = entries.slice(-3).reverse();
+            
+            let html = '';
+            recentEntries.forEach(entry => {
+                const responsePreview = entry.response.substring(0, 300) + (entry.response.length > 300 ? '...' : '');
+                html += `
+                    <div class="log-entry">
+                        <div class="timestamp">TIMESTAMP: ${escapeHtml(entry.timestamp)}</div>
+                        <div class="query">QUERY: ${escapeHtml(entry.query)}</div>
+                        <div class="response">${escapeHtml(responsePreview)}</div>
+                        <span class="consensus-badge ${entry.isConsensus ? 'success' : 'failed'}">
+                            ${entry.isConsensus ? 'CONSENSUS APPROVED' : 'CONSENSUS FAILED'}
+                        </span>
                     </div>
                 `;
+            });
+            
+            if (entries.length > 3) {
+                html += `<div style="text-align: center; margin-top: 15px;">
+                    <a onclick="openModal()" class="view-full-link">VIEW FULL LOG (${entries.length} records)</a>
+                </div>`;
             }
+            
+            multistageDiv.innerHTML = html;
         }
         
         function escapeHtml(text) {
@@ -800,219 +588,8 @@
             return div.innerHTML;
         }
         
-        async function loadMultistageResults() {
-            const multistageDiv = document.getElementById('multistageEntries');
-            
-            try {
-                const timestamp = new Date().getTime();
-                const logResponse = await fetch(`https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/multistage_log.md?t=${timestamp}`);
-                const consensusResponse = await fetch(`https://raw.githubusercontent.com/KG-NINJA/aMAGIgoesystem/main/results/consensus_log.md?t=${timestamp}`);
-                
-                let multistageText = '';
-                let consensusText = '';
-                
-                if (logResponse.ok) {
-                    multistageText = await logResponse.text();
-                }
-                
-                if (consensusResponse.ok) {
-                    consensusText = await consensusResponse.text();
-                }
-                
-                if (!multistageText.trim() && !consensusText.trim()) {
-                    multistageDiv.innerHTML = `
-                        <div class="error">
-                            NO DEBATE DATA FOUND<br>
-                            <div style="margin-top: 20px; font-size: 0.9em;">
-                                <a href="https://github.com/KG-NINJA/aMAGIgoesystem/actions" 
-                                   style="color: #00ccff;">EXECUTE MAGI DEBATE SEQUENCE</a>
-                            </div>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                displayCombinedResults(multistageText, consensusText);
-                
-            } catch (error) {
-                console.error('Error loading multistage results:', error);
-                multistageDiv.innerHTML = `
-                    <div class="error">
-                        NO DEBATE DATA AVAILABLE
-                    </div>
-                `;
-            }
-        }
-        
-        function displayCombinedResults(multistageText, consensusText) {
-            const multistageDiv = document.getElementById('multistageEntries');
-            let htmlOutput = '';
-            
-            if (consensusText && consensusText.trim()) {
-                const consensusEntries = parseConsensusLog(consensusText);
-                
-                if (consensusEntries.length > 0) {
-                    const recentEntries = consensusEntries.slice(-3).reverse();
-                    
-                    htmlOutput += `
-                        <div style="margin-bottom: 20px;">
-                            <div style="color: #ff6600; font-weight: bold; margin-bottom: 15px; font-size: 1.1em;">
-                                RECENT SIMPLE FUSION RESULTS
-                            </div>
-                        </div>
-                    `;
-                    
-                    recentEntries.forEach(entry => {
-                        htmlOutput += `
-                            <div class="log-entry">
-                                <div class="timestamp">TIMESTAMP: ${entry.timestamp}</div>
-                                <div class="query">QUERY: ${escapeHtml(entry.query)}</div>
-                                <div class="response">${escapeHtml(entry.response.substring(0, 400))}${entry.response.length > 400 ? '...' : ''}</div>
-                                <span class="consensus-badge ${entry.isConsensus ? 'success' : 'failed'}">
-                                    ${entry.isConsensus ? 'CONSENSUS APPROVED' : 'CONSENSUS REJECTED'}
-                                </span>
-                            </div>
-                        `;
-                    });
-                    
-                    if (consensusEntries.length > 3) {
-                        htmlOutput += `
-                            <div style="text-align: center; margin-top: 20px; color: #666; letter-spacing: 2px;">
-                                DISPLAYING 3 OF ${consensusEntries.length} RECORDS
-                            </div>
-                        `;
-                    }
-                    
-                    htmlOutput += `
-                        <div style="text-align: center; margin-top: 15px;">
-                            <a href="#" onclick="openModal('consensus'); return false;" 
-                               style="color: #00ccff; cursor: pointer; letter-spacing: 2px;">
-                               VIEW ALL SIMPLE FUSION LOGS
-                            </a>
-                        </div>
-                    `;
-                    
-                    window.consensusRawData = consensusText;
-                }
-            }
-            
-            if (htmlOutput) {
-                multistageDiv.innerHTML = htmlOutput;
-            } else {
-                multistageDiv.innerHTML = `
-                    <div class="error">
-                        NO VALID DEBATE DATA
-                    </div>
-                `;
-            }
-        }
-        
-        function updateTimestamp() {
-            const now = new Date();
-            const timeStr = now.toLocaleString('ja-JP', { 
-                year: 'numeric', 
-                month: '2-digit', 
-                day: '2-digit', 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit' 
-            });
-            document.getElementById('updateTime').textContent = timeStr;
-        }
-        
-        function reloadAllData() {
-            console.log('Reloading all data...');
-            
-            window.rawLogData = null;
-            window.multistageRawData = null;
-            window.consensusRawData = null;
-            
-            document.getElementById('logEntries').innerHTML = '<div class="loading">RELOADING DATA...</div>';
-            document.getElementById('multistageEntries').innerHTML = '<div class="loading">RELOADING DATA...</div>';
-            
-            setTimeout(() => {
-                loadResults();
-                loadMultistageResults();
-                updateTimestamp();
-            }, 500);
-        }
-        
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            if (tabName === 'simple') {
-                document.getElementById('simpleTab').classList.add('active');
-            } else if (tabName === 'multistage') {
-                document.getElementById('multistageTab').classList.add('active');
-            }
-        }
-        
-        function startDeliberation() {
-            const systems = [
-                { id: 'balthasar', delay: 0 },
-                { id: 'melchior', delay: 800 },
-                { id: 'casper', delay: 1600 }
-            ];
-            
-            systems.forEach(sys => {
-                setTimeout(() => {
-                    const unit = document.getElementById(sys.id);
-                    const status = document.getElementById(`${sys.id}-status`);
-                    
-                    unit.classList.add('deliberating');
-                    status.textContent = 'DELIBERATING';
-                    status.className = 'status deliberating';
-                    
-                    setTimeout(() => {
-                        unit.classList.remove('deliberating');
-                        unit.classList.add('approved');
-                        status.textContent = 'APPROVED';
-                        status.className = 'status operational';
-                    }, 1500);
-                }, sys.delay);
-            });
-            
-            setTimeout(() => {
-                const header = document.querySelector('.status-bar');
-                header.textContent = 'RESULT OF THE DELIBERATION: ALL APPROVED';
-                header.style.color = '#00ff00';
-                header.style.textShadow = '0 0 10px #00ff00';
-            }, 4000);
-        }
-        
-        setTimeout(startDeliberation, 3000);
-        
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('magi-unit') || e.target.closest('.magi-unit')) {
-                ['balthasar', 'casper', 'melchior'].forEach(id => {
-                    const unit = document.getElementById(id);
-                    const status = document.getElementById(`${id}-status`);
-                    unit.className = 'magi-unit';
-                    if (id === 'casper') {
-                        status.textContent = 'LIMITED';
-                        status.className = 'status degraded';
-                    } else {
-                        status.textContent = 'OPERATIONAL';
-                        status.className = 'status operational';
-                    }
-                });
-                
-                const header = document.querySelector('.status-bar');
-                header.textContent = 'DIRECT LINK CONNECTION: MAGI_01';
-                header.style.color = '#ff6600';
-                header.style.textShadow = 'none';
-                
-                setTimeout(startDeliberation, 500);
-            }
-        });
-        
-        updateTimestamp();
-        loadResults();
-        loadMultistageResults();
+        // 初期化
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>
