@@ -191,18 +191,20 @@ def main():
     # 結果を保存
     os.makedirs("results", exist_ok=True)
     
-    with open("results/fusion_results.json", "w", encoding="utf-8") as f:
+       # 結果を保存
+    with open("multistage_debate.json", "w", encoding="utf-8") as f:
         json.dump(result_data, f, ensure_ascii=False, indent=2)
-    
-    with open("results/consensus_log.md", "a", encoding="utf-8") as f:
+
+    with open("multistage_log.md", "a", encoding="utf-8") as f:
         f.write(f"\n\n## {timestamp}\n\n**Query:** {q}\n\n{fusion}\n\n---\n")
-    
+
     print(f"\n{fusion}")
     print(f"\n" + "="*60)
     print(f"Results saved to:")
-    print(f"  - results/fusion_results.json")
-    print(f"  - results/consensus_log.md")
+    print(f"  - multistage_debate.json")
+    print(f"  - multistage_log.md")
     print(f"="*60)
+
 
 if __name__ == "__main__":
     main()
