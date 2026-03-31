@@ -80,8 +80,8 @@ def ask_anthropic(q):
 
 def ask_gemini(q):
     try:
-        print("    Querying Google Gemini 2.0...")
-        m = genai.GenerativeModel("gemini-2.0-flash-exp")
+        print("    Querying Google Gemini 2.5 Flash...")
+        m = genai.GenerativeModel("gemini-2.5-flash")
         r = m.generate_content(q)
         response = r.text.strip()
         print("    ✓ Gemini response received")
@@ -171,7 +171,7 @@ def main():
         "models": {
             "openai": "gpt-4o",
             "anthropic": "claude-sonnet-4-5-20250929",
-            "gemini": "gemini-2.0-flash-exp"
+            "gemini": "gemini-2.5-flash"
         },
         "responses": {
             "openai": openai_response,
