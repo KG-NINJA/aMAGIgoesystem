@@ -57,9 +57,9 @@ def ask_anthropic(q):
         return "[Anthropic Error: API client not initialized]"
     
     try:
-        print("    Querying Anthropic Claude Sonnet 4.5...")
+        print("    Querying Anthropic Claude 3.5 Sonnet...")
         r = anthropic_client.messages.create(
-            model="claude-sonnet-4-5-20250929",
+            model="claude-3-5-sonnet-latest",
             max_tokens=8192,
             messages=[{"role": "user", "content": q}],
             timeout=30
@@ -80,8 +80,8 @@ def ask_anthropic(q):
 
 def ask_gemini(q):
     try:
-        print("    Querying Google Gemini 2.5 Flash...")
-        m = genai.GenerativeModel("gemini-2.5-flash")
+        print("    Querying Google Gemini 1.5 Flash...")
+        m = genai.GenerativeModel("gemini-1.5-flash")
         r = m.generate_content(q)
         response = r.text.strip()
         print("    ✓ Gemini response received")
@@ -170,8 +170,8 @@ def main():
         "question": q, 
         "models": {
             "openai": "gpt-4o",
-            "anthropic": "claude-sonnet-4-5-20250929",
-            "gemini": "gemini-2.5-flash"
+            "anthropic": "claude-3-5-sonnet-latest",
+            "gemini": "gemini-1.5-flash"
         },
         "responses": {
             "openai": openai_response,

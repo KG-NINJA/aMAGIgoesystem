@@ -18,8 +18,8 @@ a MAGi goe System は、3つの異なる視点を持つAIシステム（Logic, E
 
 | System | AI Model | Role | Perspective |
 |--------|----------|------|-------------|
-| **BALTHASAR-2** | Google Gemini 2.5 Flash | Logic System | 論理的分析・構造的思考 |
-| **CASPER-3** | Anthropic Claude Sonnet 4.5 | Ethics System | 倫理的評価・道徳的判断 |
+| **BALTHASAR-2** | Google Gemini 1.5 Flash | Logic System | 論理的分析・構造的思考 |
+| **CASPER-3** | Anthropic Claude 3.5 Sonnet | Ethics System | 倫理的評価・道徳的判断 |
 | **MELCHIOR-1** | OpenAI GPT-4o | Intuition System | 直感的洞察・創造的思考 |
 
 ---
@@ -239,8 +239,8 @@ aMAGIgoesystem/
   "question": "Your query",
   "models": {
     "openai": "gpt-4o",
-    "anthropic": "claude-sonnet-4-5-20250929",
-    "gemini": "gemini-2.5-flash"
+    "anthropic": "claude-3-5-sonnet-latest",
+    "gemini": "gemini-1.5-flash"
   },
   "responses": {
     "openai": "...",
@@ -332,10 +332,10 @@ convergence_rate = round2_similarity - round1_similarity
 model="gpt-4o"  # or "gpt-4o-mini", "o1-preview"
 
 # Anthropic
-model="claude-sonnet-4-5-20250929"  # or "claude-opus-4-1"
+model="claude-3-5-sonnet-latest"  # or "claude-3-5-opus-latest"
 
 # Google
-model="gemini-2.5-flash"  # or "gemini-2.5-pro"
+model="gemini-1.5-flash"  # or "gemini-1.5-pro"
 ```
 
 ### UIのカスタマイズ
